@@ -1,1 +1,1 @@
-# ASUKA (Autonomous Self-Reliant Ubiquitous Kinetic Assistant)
+# A.S.U.K.A - Autonomous Self-Reliant Ubiquitous Kinetic Assistant
