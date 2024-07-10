@@ -1,2 +1,1 @@
-# asuka-assistant
- ASUKA (Autonomous Self-Reliant Ubiquitous Kinetic Assistant) - A Virtual Assistant on Telegram
+# H.I.K.A.R.I - Human-like Interactive Knowledge Assistant & Response Initiator
