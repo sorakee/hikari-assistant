@@ -59,7 +59,7 @@ async def whitelist_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if senderID != CREATOR_ID or update.message.chat.type != 'private':
         await update.effective_message.reply_text(
-            text=msg,
+            text=msg[0],
             reply_to_message_id=update.effective_message.id
         )
         
