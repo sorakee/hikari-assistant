@@ -1,1 +1,1 @@
-# A.S.U.K.A - Autonomous Self-Reliant Ubiquitous Kinetic Assistant
+# H.I.K.A.R.I - Human-like Interactive Knowledge Assistant & Response Initiator
