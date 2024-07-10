@@ -101,7 +101,7 @@ async def whitelist_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
         raise ApplicationHandlerStop
 
 
-def main():
+def run_bot():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     filter_users = TypeHandler(Update, whitelist_users)
@@ -116,4 +116,4 @@ def main():
     app.run_polling()
 
 if __name__ == '__main__':
-    main()
+    run_bot()
