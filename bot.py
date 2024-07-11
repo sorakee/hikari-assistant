@@ -2,7 +2,8 @@ import os
 import emoji
 import asyncio
 import logging
-
+import json
+from dotenv import load_dotenv
 from datetime import datetime
 from telegram import Update
 from telegram.ext import (
@@ -14,24 +15,19 @@ from telegram.ext import (
     TypeHandler
 )
 
-from dotenv import load_dotenv
-
-
 load_dotenv()
+
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CREATOR_ID = int(os.getenv("CREATOR_ID"))
+STICKERS = {}
+
+with open("stickers.json") as file:
+    STICKERS = json.load(file)
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
-
-stickers = {
-    "sorry" : "CAACAgQAAxkBAAIBgGaO6q2sBUXGeHBGRoxMjfPzDFIJAAKSAAO646QhC0FTFucGe-U1BA",
-    "whattodo" : "CAACAgQAAxkBAAIBd2aO6l5Iqu-IumvJ0iWQCf7NubsbAAKQAAO646QhfG1UhUhtwto1BA",
-    "hello" : "CAACAgQAAxkBAAIBmGaO8ZgTlY4pJn3xcHi5bYgkhTAzAAKPAAO646QhmIg8RcEGo941BA",
-    "goodnight" : "CAACAgQAAxkBAAIB2WaO92iboaxcq-Moh3mD1-SwGAABtAAClQADuuOkIZlpYIIQ5aSmNQQ"
-}
 
 
 async def handle_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -50,23 +46,24 @@ async def handle_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_states[sender.id]['message_queue'] = []
 
         await context.bot.send_message(sender.id, msg)
-        await context.bot.send_sticker(sender.id, stickers["hello"])
+        await context.bot.send_sticker(sender.id, STICKERS["hello"])
     
     if update.message.text == "/stop":
         msg = "Goodbye~!"
+        user_states[sender.id]['message_queue'] = []
 
         try:  
             del user_states[sender.id]
         except:
             await context.bot.send_message(
                 sender.id,
-                "<i>Hikari already went back to sleep!</i>",
+                "<i>Hikari is already asleep!</i>",
                 "html"
             )
             return
         
         await context.bot.send_message(sender.id, msg)
-        await context.bot.send_sticker(sender.id, stickers["goodnight"])
+        await context.bot.send_sticker(sender.id, STICKERS["goodnight"])
         
 
 async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -116,7 +113,7 @@ async def whitelist_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await asyncio.sleep(1)
             await context.bot.send_message(senderID, m)
 
-        await context.bot.send_sticker(senderID, stickers["sorry"])
+        await context.bot.send_sticker(senderID, STICKERS["sorry"])
 
         raise ApplicationHandlerStop
 
