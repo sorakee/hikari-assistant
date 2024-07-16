@@ -1,10 +1,6 @@
 import os
-import emoji
-import asyncio
 import logging
-import json
 from dotenv import load_dotenv
-from datetime import datetime
 from handler import (
     whitelist_users,
     handle_cmd,
@@ -14,8 +10,6 @@ from telegram import Update
 from telegram.ext import (
     filters,
     ApplicationBuilder,
-    ApplicationHandlerStop,
-    ContextTypes,
     MessageHandler,
     TypeHandler
 )
