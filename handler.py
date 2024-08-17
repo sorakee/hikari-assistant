@@ -14,10 +14,11 @@ CREATOR_ID = int(os.getenv("CREATOR_ID"))
 STICKERS = {}
 
 with open("stickers.json") as file:
+    # DO NOT ALTER THIS AFTER LOADING VALUES FOR STICKERS
     STICKERS = json.load(file)
 
 
-async def handle_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     cmds = ["/start", "/stop"]
     user_states = context.user_states
     # print(user_states)
@@ -52,16 +53,16 @@ async def handle_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_sticker(sender.id, STICKERS["goodnight"])
         
 
-async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     sender = update.message.from_user
     user_states = context.user_states
     # print(update.message.text)
     print(user_states)
 
-    msg = "<i>Hikari is currently sleeping. Use the /start command to wake her up.</i>"
+    reminder_msg = "<i>Hikari is currently sleeping. Use the /start command to wake her up.</i>"
     
     if sender.id not in user_states:
-        await context.bot.send_message(sender.id, msg, "html")
+        await context.bot.send_message(sender.id, reminder_msg, "html")
         return
     
     user_msg = update.message.text
@@ -82,7 +83,7 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
         })
 
 
-async def whitelist_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def whitelist_users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # print(update.effective_message)
     senderID = update.effective_chat.id
     msg = ["Huh?! Who are you?", 

@@ -1,5 +1,6 @@
-import asyncio
 import os
+import json
+import asyncio
 from dotenv import load_dotenv
 from telegram.ext import Application
 
@@ -17,8 +18,4 @@ def process_message(message_queue):
 
 
 async def check_inactivity():
-    return
-
-
-async def check_inactivity(app: Application):
     return

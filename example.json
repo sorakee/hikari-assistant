@@ -1,0 +1,6 @@
+{
+    "name": "INSERT NAME HERE",
+    "context": "INSERT CONTEXT / PERSONALITY HERE. INCLUDE DIALOGUE EXAMPLES FOR BETTER RESULTS (RECOMMENDED)",
+    "greeting": "",
+    "instruct_cmd": "Continue the chat dialogue below. Write a single reply for the character \"<|character|>\" in less than 5 sentences.\n\n<|prompt|>"
+}
