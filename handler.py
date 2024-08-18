@@ -86,7 +86,9 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
             "message" : user_msg,
             "datetime" : datetime.now()
         })
-        await process_message(sender.id, message_queue)
+    
+    # This fixes the program's incorrect behaviour when using 'await'
+    asyncio.create_task(process_message(sender.id, message_queue))
 
 
 async def whitelist_users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

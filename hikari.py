@@ -1,7 +1,6 @@
 import os
 import json
-import asyncio
-import requests
+import aiohttp
 from dotenv import load_dotenv
 from datetime import datetime
 from telegram import Bot
@@ -46,19 +45,21 @@ async def process_message(sender_id, message_queue):
         "context": context,
         "chat_instruct_command": instruct_cmd
     }
-    
-    # THIS IS BLOCKING THE CODE >:(
-    response = requests.post(URI, headers=headers, json=body, verify=False)
-    hikari_msg = ""
-        
-    if response.status_code == 200:
-        if verbose:
-            print(response.json(), "\n")
 
-        hikari_msg = response.json()["choices"][0]["message"]["content"]
-        memory.append({"role": "assistant", "content": hikari_msg})
-    else:
-        hikari_msg = "ERROR: Please try again. Sorry!"
+    hikari_msg = ""
+    
+    async with aiohttp.ClientSession() as session:
+        response = await session.post(URI, json=body, headers=headers)
+    
+        if response.status == 200:
+            if verbose:
+                print(response.json(), "\n")
+
+            hikari_msg = await response.json()
+            hikari_msg = hikari_msg["choices"][0]["message"]["content"]
+            memory.append({"role": "assistant", "content": hikari_msg})
+        else:
+            hikari_msg = "ERROR: Please try again. Sorry!"
     
     await bot.send_message(sender_id, hikari_msg)
     message_queue.pop(0)
