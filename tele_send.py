@@ -16,7 +16,7 @@ async def get_me():
             print(await bot.get_me())
 
 
-async def send_reply():
+async def send_reply(sender_id, bot_msg, message_queue):
     async with bot:
-        await asyncio.sleep(1)
-        await bot.send_message(5764657078, "Sent from another program.")
+        await bot.send_message(sender_id, bot_msg)
+        message_queue.pop(0)

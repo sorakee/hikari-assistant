@@ -3,6 +3,7 @@ import json
 import emoji
 import asyncio
 from dotenv import load_dotenv
+from hikari import process_message
 from datetime import datetime
 from telegram import Update
 from telegram.ext import ContextTypes, ApplicationHandlerStop
@@ -11,18 +12,19 @@ from telegram.ext import ContextTypes, ApplicationHandlerStop
 load_dotenv()
 
 CREATOR_ID = int(os.getenv("CREATOR_ID"))
-STICKERS = {}
+VERBOSE = True
 
 with open("stickers.json") as file:
-    # DO NOT ALTER THIS AFTER LOADING VALUES FOR STICKERS
     STICKERS = json.load(file)
 
 
 async def handle_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     cmds = ["/start", "/stop"]
     user_states = context.user_states
-    # print(user_states)
     sender = update.message.from_user
+
+    if VERBOSE:
+        print(user_states)
 
     if update.message.text not in cmds:
         msg = "I'm afraid your command is invalid."
@@ -56,8 +58,10 @@ async def handle_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     sender = update.message.from_user
     user_states = context.user_states
-    # print(update.message.text)
-    print(user_states)
+
+    if VERBOSE:
+        print(update.message.text)
+        print(user_states)
 
     reminder_msg = "<i>Hikari is currently sleeping. Use the /start command to wake her up.</i>"
     
@@ -69,22 +73,26 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     user_msg = emoji.replace_emoji(user_msg, replace="").strip()
     message_queue = user_states[sender.id]["message_queue"]
 
-    if len(message_queue) > 1:
+    if len(message_queue) > 0:
         await context.bot.send_message(
             sender.id,
             "<i>Hikari is still typing... Please wait a second.</i>",
             "html"
         )
+        return
     else:
         message_queue.append({
-            "name" : "Creator" if sender.id == CREATOR_ID else f'{sender.full_name}',
+            "name" : "sorakee" if sender.id == CREATOR_ID else f'{sender.full_name}',
             "message" : user_msg,
             "datetime" : datetime.now()
         })
+        await process_message(sender.id, message_queue)
 
 
 async def whitelist_users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    # print(update.effective_message)
+    if VERBOSE:
+        print(update.effective_message)
+    
     senderID = update.effective_chat.id
     msg = ["Huh?! Who are you?", 
            "You need my creator's permission first before you can talk to me.", 
