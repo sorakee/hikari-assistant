@@ -20,6 +20,10 @@ with open("character.json") as file:
     context: str = character["context"]
 
 USER: str = "sorakee"
+# Nous-Hermes-SOLAR
+TEMPLATE: str = "ChatML"
+# Wizard-Vicuna
+# TEMPLATE: str = "Vicuna-v1.1"
 memory = [{"role": "assistant", "content": GREETING}] if GREETING != "" else []
 
 
@@ -43,7 +47,8 @@ async def process_message(sender_id, message_queue):
         "mode": "chat-instruct",
         "character": CHAR_NAME,
         "context": context,
-        "chat_instruct_command": instruct_cmd
+        "chat_instruct_command": instruct_cmd,
+        "instruction_template": TEMPLATE
     }
 
     hikari_msg = ""
