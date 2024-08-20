@@ -87,7 +87,8 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
             "datetime" : datetime.now()
         })
     
-    # This fixes the program's incorrect behaviour when using 'await'
+    # Runs a coroutine in the background 
+    # Allows the current function to continue running and finish
     asyncio.create_task(process_message(sender.id, message_queue))
 
 

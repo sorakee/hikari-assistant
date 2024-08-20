@@ -1,5 +1,6 @@
 import os
 import logging
+import nltk
 from dotenv import load_dotenv
 from handler import (
     whitelist_users,
@@ -43,4 +44,6 @@ def run_bot() -> None:
 
 
 if __name__ == "__main__":
+    # TODO : Create a Python setup script to download necessary models and run programs
+    nltk.download("punkt_tab")
     run_bot()
