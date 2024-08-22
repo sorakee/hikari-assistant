@@ -31,12 +31,19 @@ with open("character.json") as file:
 
 USER = "sorakee"
 TEMPLATE = "ChatML"
+# TEMPLATE = "Vicuna-v1.1"
 VERBOSE = False
 short_mem = []
 module_mem = []
 
 
-async def infer_model(context: str, command: str, memory: list, tp: float=1.0) -> str:
+async def infer_model(
+        context: str, 
+        command: str, 
+        memory: list, 
+        tp: float=1.0,
+        repeat_penalty: float=1.0
+    ) -> str:
     """
     Sends a prompt to the model through an HTTP POST request to a specified API endpoint.
     
@@ -52,6 +59,9 @@ async def infer_model(context: str, command: str, memory: list, tp: float=1.0) -
     tp: float
         This parameter determines whether the output is more random and creative
         or more predictable.
+    repeat_penalty: float
+        This parameter determines how much you want to penalize the AI when it 
+        repeats text.
     
     Returns
     -------
@@ -71,7 +81,8 @@ async def infer_model(context: str, command: str, memory: list, tp: float=1.0) -
         "context": context,
         "chat_instruct_command": command,
         "instruction_template": TEMPLATE,
-        "temperature": tp
+        "temperature": tp,
+        "repetition_penalty": repeat_penalty
     }
 
     hikari_msg = ""
@@ -118,24 +129,29 @@ async def process_message(sender_id: int, message_queue: list):
     
     user_item = message_queue[0]
     user_msg: str = user_item["message"]
-    msg_date: datetime = user_item["datetime"]
-    msg_date_str: str = msg_date.strftime("%d %B %Y, %H:%M:%S")
+    msg_date: str = user_item["datetime"].strftime("%d %B %Y, %H:%M:%S")
 
     curr_date = f"Today's date is {datetime.now().strftime("%d %B %Y, %H:%M:%S")}"
     curr_ctx = f"{desc}\n\n{module_ctx}\n\n{curr_date}"
+    
     short_mem.append({"role": "user", "content": user_msg})
     module_mem.append({"role": "user", "content": user_msg})
     result = ""
 
+    # Checks if model 'MODULE' response meets the specified pattern
+    # Example: MODULE = Conversation. Topic = Food.
+    # Any additional text after the second full stop is ignored.
     while True:
-        result = await infer_model(curr_ctx, MODULE_CMD, module_mem)
-        pattern = r"MODULE\s*=\s*(\w+)\.\s*(Topic|Date|Description)\s*=\s*([^\.\n]+)"
+        result = await infer_model(curr_ctx, MODULE_CMD, module_mem, 0.7, 1.1)
+        pattern = r"MODULE\s*=\s*(\w+)\.\s*(Topic|Date|Description)\s*=\s*([^.]+)"
         match = re.search(pattern, result)
         print(match)
-        print(result)
         if match:
+            result = [match.group(1), match.group(2), match.group(3).strip()]
             break
         module_mem.pop()
+    
+    result = f"MODULE = {result[0]}. {result[1]} = {result[2]}."
 
     # Splits generated result into a list of sentences
     result = sent_tokenize(result)

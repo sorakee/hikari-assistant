@@ -6,11 +6,11 @@ from pathlib import Path
 
 ###########################################################
 
-print("Please input the host URL:")
-print("Example: test.com")
-host_input = input("> ")
+# print("Please input the host URL:")
+# print("Example: test.com")
+# host_input = input("> ")
 
-URI = f"http://{host_input}/v1/chat/completions"
+URI = f"http://127.0.0.1:5000/v1/chat/completions"
 
 ###########################################################
 # CHAT SETTINGS
@@ -25,18 +25,20 @@ URI = f"http://{host_input}/v1/chat/completions"
 root_dir = Path(__file__).resolve().parent.parent
 filename = root_dir / "character.json"
 
-with open(filename) as file:
+with open(filename, encoding="utf-8") as file:
     character = json.load(file)
     verbose: bool = False
     CHAR_NAME: str = character["name"]
     GREETING: str = character["greeting"]
     instruct_cmd: str = character["instruct_cmd"]
-    context: str = character["context"]
+    context: str = character["main_context"]
+    desc: str = character["description"]
 
+TEMPLATE = "ChatML"
 USER: str = "sorakee"
 
 memory = [{"role": "assistant", "content": GREETING}]
-
+ctx = f"{desc}\n\n{context}"
 
 def main():
     if GREETING != "":
@@ -45,6 +47,7 @@ def main():
     while True:
         user_message = input("> ")
         memory.append({"role": "user", "content": user_message})
+        
 
         headers = {
             "Content-Type": "application/json"
@@ -55,8 +58,11 @@ def main():
             "user": USER,
             "mode": "chat-instruct",
             "character": CHAR_NAME,
-            "context": context,
-            "chat_instruct_command": instruct_cmd
+            "context": ctx,
+            "chat_instruct_command": instruct_cmd,
+            "instruction_template": TEMPLATE,
+            "temperature": 1.0,
+            "repetition_penalty": 1.0
         }
     
         response = requests.post(URI, headers=headers, json=body, verify=False)
