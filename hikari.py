@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import aiohttp
 import asyncio
@@ -32,11 +33,12 @@ USER = "sorakee"
 TEMPLATE = "ChatML"
 VERBOSE = False
 short_mem = []
+module_mem = []
 
 
-async def infer_model(context: str, command: str, tp: float=1.0) -> str:
+async def infer_model(context: str, command: str, memory: list, tp: float=1.0) -> str:
     """
-    Sends a prompt to the model through a POST request to a specified API endpoint.
+    Sends a prompt to the model through an HTTP POST request to a specified API endpoint.
     
     Parameters
     ----------
@@ -45,6 +47,8 @@ async def infer_model(context: str, command: str, tp: float=1.0) -> str:
         few-shot examples, instructions and any other additional information.
     command: str
         The instruction command, which will be followed by the AI.
+    memory: list
+        A list of dicts (dialogue history between the roles 'user' and 'assistant').
     tp: float
         This parameter determines whether the output is more random and creative
         or more predictable.
@@ -60,7 +64,7 @@ async def infer_model(context: str, command: str, tp: float=1.0) -> str:
     }
 
     body = {
-        "messages": short_mem,
+        "messages": memory,
         "name1": USER,
         "mode": "chat-instruct",
         "character": CHAR_NAME,
@@ -81,7 +85,7 @@ async def infer_model(context: str, command: str, tp: float=1.0) -> str:
                     print(hikari_msg)
 
                 hikari_msg = hikari_msg["choices"][0]["message"]["content"]
-                short_mem.append({"role": "assistant", "content": hikari_msg})
+                memory.append({"role": "assistant", "content": hikari_msg})
             else:
                 hikari_msg = "ERROR: Please try again. Sorry!"
 
@@ -115,14 +119,25 @@ async def process_message(sender_id: int, message_queue: list):
     user_item = message_queue[0]
     user_msg: str = user_item["message"]
     msg_date: datetime = user_item["datetime"]
-    msg_date_str: str = msg_date.strftime("%d/%m/%Y, %H:%M:%S")
+    msg_date_str: str = msg_date.strftime("%d %B %Y, %H:%M:%S")
 
-    curr_date = f"Today's date is {datetime.now().strftime("%d/%m/%Y, %H:%M:%S")}"
-    curr_ctx = f"{curr_date}\n\n{desc}\n\n{module_ctx}"
+    curr_date = f"Today's date is {datetime.now().strftime("%d %B %Y, %H:%M:%S")}"
+    curr_ctx = f"{desc}\n\n{module_ctx}\n\n{curr_date}"
     short_mem.append({"role": "user", "content": user_msg})
+    module_mem.append({"role": "user", "content": user_msg})
+    result = ""
+
+    while True:
+        result = await infer_model(curr_ctx, MODULE_CMD, module_mem)
+        pattern = r"MODULE\s*=\s*(\w+)\.\s*(Topic|Date|Description)\s*=\s*([^\.\n]+)"
+        match = re.search(pattern, result)
+        print(match)
+        print(result)
+        if match:
+            break
+        module_mem.pop()
 
     # Splits generated result into a list of sentences
-    result = await infer_model(curr_ctx, MODULE_CMD)
     result = sent_tokenize(result)
 
     for msg in result:
