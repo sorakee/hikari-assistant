@@ -34,7 +34,7 @@ with open(filename, encoding="utf-8") as file:
     context: str = character["main_context"]
     desc: str = character["description"]
 
-TEMPLATE = "ChatML"
+TEMPLATE = "Vicuna-v1.1"
 USER: str = "sorakee"
 
 memory = [{"role": "assistant", "content": GREETING}]
@@ -55,14 +55,14 @@ def main():
 
         body = {
             "messages": memory,
-            "user": USER,
+            "name1": USER,
             "mode": "chat-instruct",
             "character": CHAR_NAME,
             "context": ctx,
             "chat_instruct_command": instruct_cmd,
             "instruction_template": TEMPLATE,
-            "temperature": 1.0,
-            "repetition_penalty": 1.0
+            "temperature": 0.7,
+            "repetition_penalty": 1.1
         }
     
         response = requests.post(URI, headers=headers, json=body, verify=False)

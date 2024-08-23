@@ -3,6 +3,7 @@ import re
 import json
 import aiohttp
 import asyncio
+import random
 from nltk import sent_tokenize
 from dotenv import load_dotenv
 from datetime import datetime
@@ -20,19 +21,20 @@ URI = "http://127.0.0.1:5000/v1/chat/completions"
 # 3. image-context - Image Prompt & Generation -> Stable Diffusion Model Query
 # 4. calendar-context - Event Reminder -> Google Calendar Query (Get Date from User Input)
 
-with open("character.json") as file:
+with open("character.json", encoding="utf-8") as file:
     character = json.load(file)
     CHAR_NAME = character["name"]
     INSTRUCT_CMD = character["instruct_cmd"]
     MODULE_CMD = character["module_cmd"]
+    MODULE_TEMPLATE = character["module_template"]
     desc = character["description"]
     module_ctx = character["module_context"]
     main_ctx = character["main_context"]
 
 USER = "sorakee"
-TEMPLATE = "ChatML"
-# TEMPLATE = "Vicuna-v1.1"
-VERBOSE = False
+# TEMPLATE = "ChatML"
+TEMPLATE = "Vicuna-v1.1"
+VERBOSE = True
 short_mem = []
 module_mem = []
 
@@ -57,6 +59,7 @@ async def infer_model(
     memory: list
         A list of dicts (dialogue history between the roles 'user' and 'assistant').
     tp: float
+        Temperature. 
         This parameter determines whether the output is more random and creative
         or more predictable.
     repeat_penalty: float
@@ -81,6 +84,7 @@ async def infer_model(
         "context": context,
         "chat_instruct_command": command,
         "instruction_template": TEMPLATE,
+        "chat_template_str": MODULE_TEMPLATE,
         "temperature": tp,
         "repetition_penalty": repeat_penalty
     }
@@ -93,7 +97,7 @@ async def infer_model(
                 hikari_msg = await resp.json()
 
                 if VERBOSE:
-                    print(hikari_msg)
+                    print(hikari_msg["choices"][0]["message"]["content"])
 
                 hikari_msg = hikari_msg["choices"][0]["message"]["content"]
                 memory.append({"role": "assistant", "content": hikari_msg})
@@ -131,11 +135,12 @@ async def process_message(sender_id: int, message_queue: list):
     user_msg: str = user_item["message"]
     msg_date: str = user_item["datetime"].strftime("%d %B %Y, %H:%M:%S")
 
-    curr_date = f"Today's date is {datetime.now().strftime("%d %B %Y, %H:%M:%S")}"
+    curr_date = f"Today's date and time is {datetime.now().strftime("%d %B %Y, %H:%M:%S")}"
     curr_ctx = f"{desc}\n\n{module_ctx}\n\n{curr_date}"
     
     short_mem.append({"role": "user", "content": user_msg})
     module_mem.append({"role": "user", "content": user_msg})
+    valid_modules = ["Conversation", "Calendar", "Weather", "Image"]
     result = ""
 
     # Checks if model 'MODULE' response meets the specified pattern
@@ -143,15 +148,29 @@ async def process_message(sender_id: int, message_queue: list):
     # Any additional text after the second full stop is ignored.
     while True:
         result = await infer_model(curr_ctx, MODULE_CMD, module_mem, 0.7, 1.1)
+        result = f"MODULE = {result}"
+
         pattern = r"MODULE\s*=\s*(\w+)\.\s*(Topic|Date|Description)\s*=\s*([^.]+)"
         match = re.search(pattern, result)
-        print(match)
-        if match:
+        if match and match.group(1) in valid_modules:
+            # result[0] - Module Name
+            # result[1] - Topic/Date/Description
+            # result[2] - Text related to result[1]
             result = [match.group(1), match.group(2), match.group(3).strip()]
             break
+
         module_mem.pop()
-    
+
     result = f"MODULE = {result[0]}. {result[1]} = {result[2]}."
+    
+    # if result[0] == "Conversation":
+    #     long_mem = query_vdb(result[1])
+    # elif result[0] == "Calendar":
+    #     events = query_calendar(result[1])
+    # elif result[0] == "Weather":
+    #     weather = query_weather(result[1])
+    # elif result[0] == "Image"
+    #     img = generate_img(result[1])
 
     # Splits generated result into a list of sentences
     result = sent_tokenize(result)
