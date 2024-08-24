@@ -37,12 +37,14 @@ TEMPLATE = "Vicuna-v1.1"
 VERBOSE = True
 short_mem = []
 module_mem = []
+valid_modules = ["Conversation", "Calendar", "Weather", "Image"]
 
 
 async def infer_model(
-        context: str, 
-        command: str, 
-        memory: list, 
+        context: str,
+        command: str,
+        chat_template: str,
+        memory: list,
         tp: float=1.0,
         repeat_penalty: float=1.0
     ) -> str:
@@ -56,6 +58,7 @@ async def infer_model(
         few-shot examples, instructions and any other additional information.
     command: str
         The instruction command, which will be followed by the AI.
+    chat_template: str
     memory: list
         A list of dicts (dialogue history between the roles 'user' and 'assistant').
     tp: float
@@ -84,7 +87,7 @@ async def infer_model(
         "context": context,
         "chat_instruct_command": command,
         "instruction_template": TEMPLATE,
-        "chat_template_str": MODULE_TEMPLATE,
+        "chat_template_str": chat_template,
         "temperature": tp,
         "repetition_penalty": repeat_penalty
     }
@@ -140,19 +143,24 @@ async def process_message(sender_id: int, message_queue: list):
     
     short_mem.append({"role": "user", "content": user_msg})
     module_mem.append({"role": "user", "content": user_msg})
-    valid_modules = ["Conversation", "Calendar", "Weather", "Image"]
     result = ""
 
     # Checks if model 'MODULE' response meets the specified pattern
     # Example: MODULE = Conversation. Topic = Food.
     # Any additional text after the second full stop is ignored.
     while True:
-        result = await infer_model(curr_ctx, MODULE_CMD, module_mem, 0.7, 1.1)
+        result = await infer_model(curr_ctx, 
+                                   MODULE_CMD, 
+                                   MODULE_TEMPLATE, 
+                                   module_mem, 
+                                   0.7, 
+                                   1.1)
         result = f"MODULE = {result}"
 
         pattern = r"MODULE\s*=\s*(\w+)\.\s*(Topic|Date|Description)\s*=\s*([^.]+)"
         match = re.search(pattern, result)
-        if match and match.group(1) in valid_modules:
+        module_name = match.group(1)
+        if match and module_name in valid_modules:
             # result[0] - Module Name
             # result[1] - Topic/Date/Description
             # result[2] - Text related to result[1]
