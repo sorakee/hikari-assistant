@@ -23,11 +23,15 @@ URI = "http://127.0.0.1:5000/v1/chat/completions"
 
 with open("character.json", encoding="utf-8") as file:
     character = json.load(file)
+    
     CHAR_NAME = character["name"]
+    desc = character["description"]
+
     INSTRUCT_CMD = character["instruct_cmd"]
     MODULE_CMD = character["module_cmd"]
+
     MODULE_TEMPLATE = character["module_template"]
-    desc = character["description"]
+
     module_ctx = character["module_context"]
     main_ctx = character["main_context"]
 

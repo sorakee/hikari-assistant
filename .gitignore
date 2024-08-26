@@ -2,3 +2,5 @@
 venv
 __pycache__
 character.json
+credentials.json
+token.pickle
