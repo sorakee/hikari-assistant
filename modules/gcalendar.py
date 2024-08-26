@@ -15,17 +15,17 @@ gc = GoogleCalendar(EMAIL, credentials_path=filename)
 
 def get_event(date: str):
     date = datetime.strptime(date, "%d %B %Y")
-    events = gc.get_events(date, date + timedelta(7), order_by="startTime", single_events=True)
-    events_info = []
+    events = gc.get_events(date, date + timedelta(1), order_by="startTime", single_events=True)
 
     if not events:
         return None
     
+    events_info = []
     for e in events:
         summary = e.summary
         location = e.location
-        start_time = e.start.strftime("%d %B %Y, %H:%M:%S")
-        end_time = e.end.strftime("%d %B %Y, %H:%M:%S")
+        start_time = e.start.strftime("%d %B %Y, %I:%M %p")
+        end_time = e.end.strftime("%d %B %Y, %I:%M %p")
         events_info.append(f"- {summary} at {location} from {start_time} until {end_time}")
     
     return events_info

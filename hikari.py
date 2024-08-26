@@ -23,7 +23,7 @@ URI = "http://127.0.0.1:5000/v1/chat/completions"
 
 with open("character.json", encoding="utf-8") as file:
     character = json.load(file)
-    
+
     CHAR_NAME = character["name"]
     desc = character["description"]
 
@@ -140,9 +140,9 @@ async def process_message(sender_id: int, message_queue: list):
     
     user_item = message_queue[0]
     user_msg: str = user_item["message"]
-    msg_date: str = user_item["datetime"].strftime("%d %B %Y, %H:%M:%S")
+    msg_date: str = user_item["datetime"].strftime("%d %B %Y, %I:%M %p")
 
-    curr_date = f"Today's date and time is {datetime.now().strftime("%d %B %Y, %H:%M:%S")}"
+    curr_date = f"Today's date and time is {datetime.now().strftime("%d %B %Y, %I:%M %p")}"
     curr_ctx = f"{desc}\n\n{module_ctx}\n\n{curr_date}"
     
     short_mem.append({"role": "user", "content": user_msg})
