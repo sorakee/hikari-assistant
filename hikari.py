@@ -174,6 +174,7 @@ async def process_message(sender_id: int, message_queue: list):
         module_mem.pop()
 
     result = f"MODULE = {result[0]}. {result[1]} = {result[2]}."
+    module_result = None
     
     # if result[0] == "Conversation":
     #     long_mem = query_vdb(result[1])
