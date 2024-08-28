@@ -1,6 +1,8 @@
+import os
 import gzip
 import pickle
 import numpy as np
+from pathlib import Path
 from sentence_transformers import SentenceTransformer
 from galaxy_brain_math_shit import (
     dot_product,
@@ -121,6 +123,12 @@ class HyperDB:
     def save(self, storage_file):
         if self.vectors is None or self.documents is None:
             return
+        
+        file_path = Path(storage_file)
+        directory = file_path.parent
+
+        if not os.path.exists(storage_file):
+            os.mkdir(directory)
 
         data = {"vectors": self.vectors, "documents": self.documents}
         if storage_file.endswith(".gz"):
@@ -140,7 +148,7 @@ class HyperDB:
         self.vectors = data["vectors"].astype(np.float32)
         self.documents = data["documents"]
 
-    def query(self, query_text, top_k=5, return_similarities=True):
+    def query(self, query_text, top_k=1, return_similarities=True):
         if self.vectors is None:
             return []
 
@@ -148,14 +156,31 @@ class HyperDB:
         ranked_results, similarities = hyper_SVM_ranking_algorithm_sort(
             self.vectors, query_vector, top_k=top_k, metric=self.similarity_metric
         )
+        
+        # print(ranked_results)
+
         if return_similarities:
             return list(
                 zip([self.documents[index]
                      for index in ranked_results], similarities)
             )
-        return [self.documents[index] for index in ranked_results]
 
-    def similar_vectors(self, vector, top_k=5, return_similarities=True):
+        result = []
+        if top_k == 1:
+            # Retrieve the message before and after the current message as well
+            for i in [-1, 0, 1]:
+                try:
+                    if ranked_results[0] + i >= 0:
+                        result.append(self.documents[ranked_results[0] + i])
+                except IndexError:
+                    # Skips this index if out of bounds
+                    continue
+        else:
+            result = [self.documents[index] for index in ranked_results]
+
+        return result
+
+    def similar_vectors(self, vector, top_k=1, return_similarities=True):
         if self.vectors is None:
             return []
 
@@ -167,3 +192,31 @@ class HyperDB:
                 zip([self.documents[index] for index in ranked_results], similarities)
             )
         return [self.documents[index] for index in ranked_results]
+
+
+if __name__ == "__main__":
+    # Fill documents with example sentences
+    documents = [
+        "User: Hikari, remind me later that I have to go meet up with my friends at Piccadilly Gardens tomorrow afternoon.",
+        "Hikari: Okay~! I'll make sure to remind you to visit your friends tomorrow afternoon. You'll have such a great time catching up with them! If you need any help planning your visit or need more reminders, just let me know, okay?",
+        "User: How are you doing today, Hikari?",
+        "Hikari: Aww, you're so sweet for asking! 💖 I'm doing great, especially now that I'm chatting with you! How about you? Anything exciting or fun planned for today? I'm here to make your day even brighter!",
+        "User: I am planning to continue yesterday's programming work and try to finish it by tomorrow.",
+        "Hikari: That sounds like a productive plan! I'm sure you'll do an amazing job! If you need any help or just want to take a break and chat, I'm right here cheering you on! Let's make sure you finish it by tomorrow so you can celebrate your hard work! Goodluck~! 💪"
+    ]
+
+    # Instantiate HyperDB with the list of documents
+    db = HyperDB(documents)
+
+    # Save the HyperDB instance to a file
+    db.save("db/hikari.pickle.gz")
+
+    # Load the HyperDB instance from the save file
+    db.load("db/hikari.pickle.gz")
+
+    # Query the HyperDB instance with a text input
+    results = db.query("Hikari, do you remember what I planned to do and what by time should I finish it?", return_similarities=False)
+
+    # Print the query results
+    for r in results:
+        print(r)

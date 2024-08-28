@@ -32,7 +32,9 @@ async def handle_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     sender = update.message.from_user
 
     if VERBOSE:
+        print("\n##########")
         print(user_states)
+        print("##########\n")
 
     if update.message.text not in cmds:
         msg = "I'm afraid your command is invalid."
@@ -68,8 +70,10 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     user_states = context.user_states
 
     if VERBOSE:
+        print("\n##########")
         print(update.message.text)
         print(user_states)
+        print("##########\n")
 
     reminder_msg = "<i>Hikari is currently sleeping. Use the /start command to wake her up.</i>"
     
@@ -138,8 +142,10 @@ async def handle_aud(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     )
 
     if VERBOSE:
-        print("\nDetected language '%s' with probability %f" % (info.language, info.language_probability))
-        print(f"Hikari heard: {result}\n")
+        print("\n##########")
+        print("Detected language '%s' with probability %f" % (info.language, info.language_probability))
+        print(f"Hikari heard: {result}")
+        print("##########\n")
 
     message_queue.append({
         "name" : "sorakee" if sender.id == CREATOR_ID else f'{sender.full_name}',
@@ -152,7 +158,9 @@ async def handle_aud(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 
 async def whitelist_users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if VERBOSE:
+        print("\n##########")
         print(update.effective_message)
+        print("##########\n")
     
     senderID = update.effective_chat.id
     msg = ["Huh?! Who are you?", 

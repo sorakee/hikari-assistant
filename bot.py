@@ -28,7 +28,6 @@ logging.basicConfig(
 
 def run_bot() -> None:
     app = ApplicationBuilder().token(BOT_TOKEN).build()
-    print(app)
 
     filter_users = TypeHandler(Update, whitelist_users)
     cmd_handler = MessageHandler(filters.COMMAND, handle_cmd)

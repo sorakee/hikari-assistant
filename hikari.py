@@ -7,6 +7,9 @@ from nltk import sent_tokenize
 from dotenv import load_dotenv
 from datetime import datetime
 from telegram import Bot
+from modules.hyperdb import HyperDB
+from modules.gcalendar import get_event
+from modules.weather import get_weather
 
 load_dotenv()
 
@@ -16,10 +19,11 @@ URI = f"http://{HOST_NAME}/v1/chat/completions"
 bot = Bot(BOT_TOKEN)
 
 # TODO: Separate context into parts, each part responsible for a task
-# 1. module-context - Module Selection
-# 2. conversation-context - Conversation & Topic Selection -> Memory Query
-# 3. image-context - Image Prompt & Generation -> Stable Diffusion Model Query
-# 4. calendar-context - Event Reminder -> Google Calendar Query (Get Date from User Input)
+# 1. Module context - Module Selection
+#   i)   Conversation & Topic Selection -> Memory Query
+#   ii)  Image context - Image Prompt & Generation -> Stable Diffusion Model Query
+#   iii) Calendar context - Event Reminder -> Google Calendar Query (Get Date from User Input)
+# 2. Replace placeholder in main context with module prompt result 
 
 with open("character.json", encoding="utf-8") as file:
     character = json.load(file)
@@ -41,6 +45,7 @@ TEMPLATE = "Vicuna-v1.1"
 VERBOSE = True
 short_mem = []
 module_mem = []
+long_mem = HyperDB()
 valid_modules = ["Conversation", "Calendar", "Weather", "Image"]
 
 
@@ -104,7 +109,7 @@ async def infer_model(
                 hikari_msg = await resp.json()
 
                 if VERBOSE:
-                    print(hikari_msg["choices"][0]["message"]["content"], "\n")
+                    print(f"##########\n{hikari_msg["choices"][0]["message"]["content"]}\n")
 
                 hikari_msg = hikari_msg["choices"][0]["message"]["content"]
                 memory.append({"role": "assistant", "content": hikari_msg})
@@ -180,16 +185,18 @@ async def process_message(sender_id: int, message_queue: list):
 
     result = f"MODULE = {result[0]}. {result[1]} = {result[2]}."
     if VERBOSE:
-        print(f"\n########## MODULE PROMPT RESULT:\n{result}\n")
+        print("\n##########")
+        print(f"MODULE PROMPT RESULT:\n{result}")
+        print("##########\n")
     
     module_result = None
     
-    # if result[0] == "Conversation":
-    #     long_mem = query_vdb(result[1])
-    # elif result[0] == "Calendar":
-    #     events = query_calendar(result[1])
-    # elif result[0] == "Weather":
-    #     weather = query_weather(result[1])
+    if result[0] == "Conversation":
+        long_mem = query_vdb(result[1])
+    elif result[0] == "Calendar":
+        events = query_calendar(result[1])
+    elif result[0] == "Weather":
+        weather = query_weather(result[1])
     # elif result[0] == "Image"
     #     img = generate_img(result[1])
 
