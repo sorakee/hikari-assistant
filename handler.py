@@ -1,9 +1,12 @@
 import os
+import re
 import json
 import emoji
 import asyncio
+from faster_whisper import WhisperModel
 from dotenv import load_dotenv
 from hikari import process_message
+from pathlib import Path
 from datetime import datetime
 from telegram import Update
 from telegram.ext import ContextTypes, ApplicationHandlerStop
@@ -15,6 +18,12 @@ VERBOSE = True
 
 with open("stickers.json") as file:
     STICKERS = json.load(file)
+
+model = WhisperModel("small.en", "cuda", compute_type="float16")
+VOICE_FILE = "voice.ogg"
+AUD_DIR = Path("audio_temp")
+if not os.path.exists(AUD_DIR):
+    os.makedirs(AUD_DIR)
 
 
 async def handle_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -88,6 +97,56 @@ async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     
     # Runs a coroutine in the background 
     # Allows the current function to continue running and finish
+    asyncio.create_task(process_message(sender.id, message_queue))
+
+
+async def handle_aud(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    sender = update.message.from_user
+    user_states = context.user_states
+
+    reminder_msg = "<i>Hikari is currently sleeping. Use the /start command to wake her up.</i>"
+    
+    if sender.id not in user_states:
+        await context.bot.send_message(sender.id, reminder_msg, "html")
+        return
+    
+    message_queue = user_states[sender.id]["message_queue"]
+
+    if len(message_queue) > 0:
+        await context.bot.send_message(
+            sender.id,
+            "<i>Hikari is still typing... Please wait a second.</i>",
+            "html"
+        )
+        return
+
+    aud_file = await context.bot.get_file(update.message.voice.file_id)
+    await aud_file.download_to_drive(AUD_DIR / VOICE_FILE)
+    segments, info = model.transcribe(str(AUD_DIR / VOICE_FILE))
+    result = re.sub(
+        "(Hickory|Cory|Cody|Corey)", 
+        "Hikari", 
+        list(segments)[0].text, 
+        flags=re.IGNORECASE
+    )
+    result = result.lstrip()
+    
+    await update.message.reply_text(
+        f"<i>Heard: \"{result}\"</i>", 
+        "html", 
+        reply_to_message_id=update.message.id
+    )
+
+    if VERBOSE:
+        print("\nDetected language '%s' with probability %f" % (info.language, info.language_probability))
+        print(f"Hikari heard: {result}\n")
+
+    message_queue.append({
+        "name" : "sorakee" if sender.id == CREATOR_ID else f'{sender.full_name}',
+        "message" : result,
+        "datetime" : datetime.now()
+    })
+
     asyncio.create_task(process_message(sender.id, message_queue))
 
 

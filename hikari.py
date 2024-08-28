@@ -3,7 +3,6 @@ import re
 import json
 import aiohttp
 import asyncio
-import random
 from nltk import sent_tokenize
 from dotenv import load_dotenv
 from datetime import datetime
@@ -12,8 +11,9 @@ from telegram import Bot
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+HOST_NAME = os.getenv("HOST_NAME")
+URI = f"http://{HOST_NAME}/v1/chat/completions"
 bot = Bot(BOT_TOKEN)
-URI = "http://127.0.0.1:5000/v1/chat/completions"
 
 # TODO: Separate context into parts, each part responsible for a task
 # 1. module-context - Module Selection
@@ -32,8 +32,8 @@ with open("character.json", encoding="utf-8") as file:
 
     MODULE_TEMPLATE = character["module_template"]
 
-    module_ctx = character["module_context"]
     main_ctx = character["main_context"]
+    module_ctx = character["module_context"]
 
 USER = "sorakee"
 # TEMPLATE = "ChatML"
@@ -104,7 +104,7 @@ async def infer_model(
                 hikari_msg = await resp.json()
 
                 if VERBOSE:
-                    print(hikari_msg["choices"][0]["message"]["content"])
+                    print(hikari_msg["choices"][0]["message"]["content"], "\n")
 
                 hikari_msg = hikari_msg["choices"][0]["message"]["content"]
                 memory.append({"role": "assistant", "content": hikari_msg})
@@ -153,17 +153,22 @@ async def process_message(sender_id: int, message_queue: list):
     # Example: MODULE = Conversation. Topic = Food.
     # Any additional text after the second full stop is ignored.
     while True:
-        result = await infer_model(curr_ctx, 
-                                   MODULE_CMD, 
-                                   MODULE_TEMPLATE, 
-                                   module_mem, 
-                                   0.7, 
-                                   1.1)
+        result = await infer_model(
+            curr_ctx, 
+            MODULE_CMD, 
+            MODULE_TEMPLATE, 
+            module_mem,
+            0.7, 1.1)
         result = f"MODULE = {result}"
 
         pattern = r"MODULE\s*=\s*(\w+)\.\s*(Topic|Date|Description)\s*=\s*([^.]+)"
         match = re.search(pattern, result)
-        module_name = match.group(1)
+
+        try:
+            module_name = match.group(1)
+        except AttributeError:
+            pass
+
         if match and module_name in valid_modules:
             # result[0] - Module Name
             # result[1] - Topic/Date/Description
@@ -174,6 +179,9 @@ async def process_message(sender_id: int, message_queue: list):
         module_mem.pop()
 
     result = f"MODULE = {result[0]}. {result[1]} = {result[2]}."
+    if VERBOSE:
+        print(f"\n########## MODULE PROMPT RESULT:\n{result}\n")
+    
     module_result = None
     
     # if result[0] == "Conversation":
