@@ -14,7 +14,11 @@ gc = GoogleCalendar(EMAIL, credentials_path=filename)
 
 
 def get_event(date: str):
-    date = datetime.strptime(date, "%d %B %Y")
+    if "today" or "now" in date.lower():
+        date = datetime.now()
+    else:
+        date = datetime.strptime(date, "%d %B %Y")
+
     events = gc.get_events(date, date + timedelta(1), order_by="startTime", single_events=True)
 
     if not events:
@@ -32,4 +36,4 @@ def get_event(date: str):
 
 
 if __name__ == "__main__":
-    print(get_event("26 August 2024"))
+    print(get_event("now"))

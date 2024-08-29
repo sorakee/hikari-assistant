@@ -13,6 +13,9 @@ async def get_weather(date: str) -> str:
     async with python_weather.Client() as client:
         weather = await client.get(LOCATION)
     
+    if "today" or "now" in date.lower():
+        date = datetime.now().strftime("%d %B %Y, %I:%M %p")
+    
     curr_temp = f"{weather.temperature}°C"
     curr_desc = weather.description
 
@@ -20,7 +23,7 @@ async def get_weather(date: str) -> str:
         
     matching_forecast = None
 
-    # Weather Forecast for 3 Days
+    # Weather Forecast for 3 Days **ONLY** 
     for daily_forecast in weather.daily_forecasts:
         forecast_date = daily_forecast.date
         if forecast_date == datetime.strptime(date, "%d %B %Y").date():
