@@ -213,7 +213,12 @@ async def process_message(sender_id: int, message_queue: list):
         print("##########\n")
 
     if len(short_mem) > 10:
-        docs = [short_mem.pop(0) for i in range(5)]
+        docs = []
+        for _ in range(5):
+            pop_mem = short_mem.pop(0)
+            sender = USER if pop_mem["role"] == "user" else CHAR_NAME
+            msg = f"{sender}: {pop_mem["content"]}"
+            docs.append(msg)
         long_mem.add_documents(docs)
         long_mem.save(DB_PATH)
 
