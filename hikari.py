@@ -3,6 +3,7 @@ import re
 import json
 import aiohttp
 import asyncio
+from pathlib import Path
 from nltk import sent_tokenize
 from dotenv import load_dotenv
 from datetime import datetime
@@ -31,9 +32,10 @@ with open("character.json", encoding="utf-8") as file:
     CHAR_NAME = character["name"]
     desc = character["description"]
 
-    INSTRUCT_CMD = character["instruct_cmd"]
+    MAIN_CMD = character["main_cmd"]
     MODULE_CMD = character["module_cmd"]
 
+    MAIN_TEMPLATE = character["main_template"]
     MODULE_TEMPLATE = character["module_template"]
 
     main_ctx = character["main_context"]
@@ -42,10 +44,15 @@ with open("character.json", encoding="utf-8") as file:
 USER = "sorakee"
 # TEMPLATE = "ChatML"
 TEMPLATE = "Vicuna-v1.1"
+DB_PATH = "db/hikari.pickle.gz"
 VERBOSE = True
+
 short_mem = []
 module_mem = []
 long_mem = HyperDB()
+if Path(DB_PATH).is_file():
+    long_mem.load(DB_PATH)
+
 valid_modules = ["Conversation", "Calendar", "Weather", "Image"]
 
 
@@ -109,7 +116,9 @@ async def infer_model(
                 hikari_msg = await resp.json()
 
                 if VERBOSE:
-                    print(f"##########\n{hikari_msg["choices"][0]["message"]["content"]}\n")
+                    print("##########\n")
+                    print(f"{hikari_msg["choices"][0]["message"]["content"]}\n")
+                    print("##########\n")
 
                 hikari_msg = hikari_msg["choices"][0]["message"]["content"]
                 memory.append({"role": "assistant", "content": hikari_msg})
@@ -145,7 +154,7 @@ async def process_message(sender_id: int, message_queue: list):
     
     user_item = message_queue[0]
     user_msg: str = user_item["message"]
-    msg_date: str = user_item["datetime"].strftime("%d %B %Y, %I:%M %p")
+    # msg_date: str = user_item["datetime"].strftime("%d %B %Y, %I:%M %p")
 
     curr_date = f"Today's date and time is {datetime.now().strftime("%d %B %Y, %I:%M %p")}"
     curr_ctx = f"{desc}\n\n{module_ctx}\n\n{curr_date}"
@@ -183,22 +192,35 @@ async def process_message(sender_id: int, message_queue: list):
 
         module_mem.pop()
 
-    result = f"MODULE = {result[0]}. {result[1]} = {result[2]}."
-    if VERBOSE:
-        print("\n##########")
-        print(f"MODULE PROMPT RESULT:\n{result}")
-        print("##########\n")
-    
-    module_result = None
-    
-    # if result[0] == "Conversation":
-    #     long_mem = query_vdb(result[1])
-    # elif result[0] == "Calendar":
-    #     events = query_calendar(result[1])
-    # elif result[0] == "Weather":
-    #     weather = query_weather(result[1])
+    module_result = ""
+    if result[0] == "Conversation":
+        queries = long_mem.query(user_msg)
+        for q in queries:
+            module_result += f"{q}\n"
+    elif result[0] == "Calendar":
+        events = get_event(result[2])
+        module_result = events
+    elif result[0] == "Weather":
+        weather = await get_weather(result[2])
+        module_result = weather
     # elif result[0] == "Image"
     #     img = generate_img(result[1])
+
+    if VERBOSE:
+        print("\n##########")
+        print(f"MODULE PROMPT RESULT:\nMODULE = {result[0]}. {result[1]} = {result[2]}.")
+        print(f"{result[0]} PROMPT RESULT:\n{module_result}")
+        print("##########\n")
+
+    if len(short_mem) > 10:
+        docs = [short_mem.pop(0) for i in range(5)]
+        long_mem.add_documents(docs)
+        long_mem.save(DB_PATH)
+
+    curr_ctx = f"{desc}\n\n{main_ctx}\n\n{curr_date}"
+    curr_ctx += "\n{{char}} may use the following information below to come up with a reply:"
+    curr_ctx += f"\n{module_result}"
+    result = await infer_model(curr_ctx, MAIN_CMD, MAIN_TEMPLATE, short_mem)
 
     # Splits generated result into a list of sentences
     result = sent_tokenize(result)

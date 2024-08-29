@@ -22,21 +22,21 @@ def get_event(date: str):
     events = gc.get_events(date, date + timedelta(1), order_by="startTime", single_events=True)
 
     if not events:
-        return None
+        return "ERROR: INVALID DATE. PLEASE TRY AGAIN!"
     
-    events_info = []
+    response = ""
     for e in events:
         summary = e.summary
         location = e.location
         start_time = e.start.strftime("%d %B %Y, %I:%M %p")
         end_time = e.end.strftime("%d %B %Y, %I:%M %p")
-        events_info.append(f"- {summary} at {location} from {start_time} until {end_time}")
+        response += (f"- {summary} at {location} from {start_time} until {end_time}\n")
     
-    if not events_info:
-        return f"No events on {datetime.strftime(date, "%d %B %Y")}."
-
-    return events_info
+    if not response:
+        return f"- Nothing is scheduled on {{{{user}}}}'s calendar on {datetime.strftime(date, "%d %B %Y")}."
+        
+    return f"Events on {datetime.strftime(date, "%d %B %Y")}:\n{response}"
 
 
 if __name__ == "__main__":
-    print(get_event("29 August 2024"))
+    print(get_event("30 August 2024"))
