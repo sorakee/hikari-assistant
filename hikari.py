@@ -191,12 +191,12 @@ async def process_message(sender_id: int, message_queue: list):
     
     module_result = None
     
-    if result[0] == "Conversation":
-        long_mem = query_vdb(result[1])
-    elif result[0] == "Calendar":
-        events = query_calendar(result[1])
-    elif result[0] == "Weather":
-        weather = query_weather(result[1])
+    # if result[0] == "Conversation":
+    #     long_mem = query_vdb(result[1])
+    # elif result[0] == "Calendar":
+    #     events = query_calendar(result[1])
+    # elif result[0] == "Weather":
+    #     weather = query_weather(result[1])
     # elif result[0] == "Image"
     #     img = generate_img(result[1])
 

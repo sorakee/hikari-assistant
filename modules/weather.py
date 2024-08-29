@@ -13,8 +13,8 @@ async def get_weather(date: str) -> str:
     async with python_weather.Client() as client:
         weather = await client.get(LOCATION)
     
-    if "today" or "now" in date.lower():
-        date = datetime.now().strftime("%d %B %Y, %I:%M %p")
+    if "today" in date.lower() or "now" in date.lower():
+        date = datetime.now().strftime("%d %B %Y")
     
     curr_temp = f"{weather.temperature}°C"
     curr_desc = weather.description
