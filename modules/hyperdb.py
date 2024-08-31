@@ -4,8 +4,9 @@ import time
 import pickle
 import numpy as np
 from pathlib import Path
-from sentence_transformers import SentenceTransformer
-from .galaxy_brain_math_shit import (
+# from sentence_transformers import SentenceTransformer
+from fast_sentence_transformers import FastSentenceTransformer as SentenceTransformer
+from galaxy_brain_math_shit import (
     dot_product,
     adams_similarity,
     cosine_similarity,
@@ -14,8 +15,10 @@ from .galaxy_brain_math_shit import (
     hyper_SVM_ranking_algorithm_sort,
 )
 
+model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2", device="cpu")
 
-def get_embedding(documents, key=None, model="all-MiniLM-L6-v2"):
+
+def get_embedding(documents, key=None):
     texts = None
     if isinstance(documents, list):
         if isinstance(documents[0], dict):
@@ -36,8 +39,7 @@ def get_embedding(documents, key=None, model="all-MiniLM-L6-v2"):
         elif isinstance(documents[0], str):
             texts = documents
     
-    model = SentenceTransformer(model, device="cuda")
-    embeddings = model.encode(texts, device="cuda")
+    embeddings = model.encode(texts)
 
     return embeddings
 
@@ -101,6 +103,13 @@ class HyperDB:
             vector if vector is not None else self.embedding_function([document])[
                 0]
         )
+        # print(vector.shape)
+        # print(vector.ndim)
+        # Delete these two lines if you are not using 
+        # "fast-sentence-transformer" for some reason
+        if vector.ndim == 2:
+            vector = vector.flatten()
+            # print(vector.shape)
         if self.vectors is None:
             self.vectors = np.empty((0, len(vector)), dtype=np.float32)
         elif len(vector) != self.vectors.shape[1]:
