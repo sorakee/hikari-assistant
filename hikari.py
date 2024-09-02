@@ -15,7 +15,7 @@ from modules.weather import get_weather
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-HOST_NAME = os.getenv("HOST_NAME")
+HOST_NAME = os.getenv("LLM_HOST")
 URI = f"http://{HOST_NAME}/v1/chat/completions"
 bot = Bot(BOT_TOKEN)
 
@@ -226,6 +226,9 @@ async def process_message(sender_id: int, message_queue: list):
     curr_ctx += "\n{{char}} may use the following information below to come up with a reply:"
     curr_ctx += f"\n{module_result}"
     result = await infer_model(curr_ctx, MAIN_CMD, MAIN_TEMPLATE, short_mem)
+    # The AI likes to say nya for some reason.
+    # Replace 'nya' to 'meow' before translating to JP for TTS
+    result = re.sub(r"\bnya\b", "meow", result, flags=re.IGNORECASE)
 
     # Splits generated result into a list of sentences
     result = sent_tokenize(result)

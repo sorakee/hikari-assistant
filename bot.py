@@ -42,10 +42,11 @@ def run_bot() -> None:
     user_states = {}
     app.context_types.context.user_states = user_states
 
+    print("Attempting to run bot...")
     app.run_polling()
 
 
 if __name__ == "__main__":
     # TODO : Create a Python setup script to download necessary models and run programs
-    nltk.download("punkt_tab")
+    # nltk.download("punkt_tab")
     run_bot()

@@ -128,7 +128,7 @@ async def handle_aud(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     await aud_file.download_to_drive(AUD_DIR / VOICE_FILE)
     segments, info = model.transcribe(str(AUD_DIR / VOICE_FILE))
     result = re.sub(
-        "(Hickory|Cory|Cody|Corey)", 
+        r"\b(Hickory|Cory|Cody|Corey)\b", 
         "Hikari", 
         list(segments)[0].text, 
         flags=re.IGNORECASE
