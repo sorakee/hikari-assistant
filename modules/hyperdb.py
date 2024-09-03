@@ -6,7 +6,7 @@ import numpy as np
 from pathlib import Path
 # from sentence_transformers import SentenceTransformer
 from fast_sentence_transformers import FastSentenceTransformer as SentenceTransformer
-from galaxy_brain_math_shit import (
+from .galaxy_brain_math_shit import (
     dot_product,
     adams_similarity,
     cosine_similarity,
@@ -15,6 +15,8 @@ from galaxy_brain_math_shit import (
     hyper_SVM_ranking_algorithm_sort,
 )
 
+# Fast sentence transformers is 360% faster than sentence transformer
+# Initialize the model here so it is quantized and optimized only once for that runtime
 model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2", device="cpu")
 
 
@@ -39,6 +41,8 @@ def get_embedding(documents, key=None):
         elif isinstance(documents[0], str):
             texts = documents
     
+    # Putting this line here increases time taken from 0.07s to 23s (32,757.14% worse WTF!)
+    # model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2", device="cpu")
     embeddings = model.encode(texts)
 
     return embeddings
@@ -137,7 +141,7 @@ class HyperDB:
         file_path = Path(storage_file)
         directory = file_path.parent
 
-        if not os.path.exists(storage_file):
+        if not os.path.exists(directory):
             os.mkdir(directory)
 
         data = {"vectors": self.vectors, "documents": self.documents}
