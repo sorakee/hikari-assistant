@@ -12,8 +12,10 @@ URL = f"http://{HOST}:{PORT}/"
 VOICE_TTS = os.getenv("TTS_PATH")
 file_path = Path(VOICE_TTS)
 directory = file_path.parent
-SPEAKER: int = 10
-VERBOSE = True
+# VOICEVOX: Amahare Hau (Speaker at Index 3 in fetch_speakers result)
+# This is the speaker's style ID
+SPEAKER: int = 10 
+VERBOSE = False
 
 if not os.path.exists(directory):
     os.mkdir(directory)
@@ -39,6 +41,10 @@ async def synthesize_voice(text: str, language: str) -> bool:
     """
     try:
         async with Client(URL) as client:
+            # speaker_list = await client.fetch_speakers()
+            # speaker_info = await client.fetch_speaker_info(speaker_list[SPEAKER-7].uuid)
+            # print(speaker_info.portrait)
+            # print(speaker_info.style_infos[0].id)
             audio_query = await client.create_audio_query(text, speaker=SPEAKER)
             if VERBOSE:
                 print("\n##########")
@@ -50,6 +56,7 @@ async def synthesize_voice(text: str, language: str) -> bool:
         return True
     except:
         # TTS API is offline
+        print("TTS API currently offline")
         return False
 
 
