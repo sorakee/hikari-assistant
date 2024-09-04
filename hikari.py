@@ -11,11 +11,22 @@ from telegram import Bot
 from modules.hyperdb import HyperDB
 from modules.gcalendar import get_event
 from modules.weather import get_weather
+from modules.translate import translate
+from modules.voicevox_tts import synthesize_voice
+from modules.imagegen import generate_img
 
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 HOST_NAME = os.getenv("LLM_HOST")
+TTS_ENABLED = os.getenv("TTS_ENABLED").lower() == "true"
+TTS_LANG = os.getenv("TTS_LANG")
+VOICE_TTS = os.getenv("TTS_PATH")
+IMG_PATH = os.getenv("IMAGE_PATH")
+TL_ENABLED = os.getenv("TL_ENABLED").lower() == "true"
+USER = os.getenv("USER")
+TEMPLATE = os.getenv("LLM_TEMPLATE")
+DB_PATH = os.getenv("DB_PATH")
 URI = f"http://{HOST_NAME}/v1/chat/completions"
 bot = Bot(BOT_TOKEN)
 
@@ -30,7 +41,7 @@ with open("character.json", encoding="utf-8") as file:
     character = json.load(file)
 
     CHAR_NAME = character["name"]
-    desc = character["description"]
+    CHAR_DESC = character["description"]
 
     MAIN_CMD = character["main_cmd"]
     MODULE_CMD = character["module_cmd"]
@@ -41,12 +52,8 @@ with open("character.json", encoding="utf-8") as file:
     main_ctx = character["main_context"]
     module_ctx = character["module_context"]
 
-USER = "sorakee"
-# TEMPLATE = "ChatML"
-TEMPLATE = "Vicuna-v1.1"
-DB_PATH = "db/hikari.pickle.gz"
-VERBOSE = True
 
+VERBOSE = True
 short_mem = []
 module_mem = []
 long_mem = HyperDB()
@@ -157,7 +164,7 @@ async def process_message(sender_id: int, message_queue: list):
     # msg_date: str = user_item["datetime"].strftime("%d %B %Y, %I:%M %p")
 
     curr_date = f"Today's date and time is {datetime.now().strftime("%d %B %Y, %I:%M %p")}"
-    curr_ctx = f"{desc}\n\n{module_ctx}\n\n{curr_date}"
+    curr_ctx = f"{CHAR_DESC}\n\n{module_ctx}\n\n{curr_date}"
     
     short_mem.append({"role": "user", "content": user_msg})
     module_mem.append({"role": "user", "content": user_msg})
@@ -181,6 +188,8 @@ async def process_message(sender_id: int, message_queue: list):
         try:
             module_name = match.group(1)
         except AttributeError:
+            # If not found, this means that the AI failed to generate a response
+            # that matches the specified pattern
             pass
 
         if match and module_name in valid_modules:
@@ -203,8 +212,22 @@ async def process_message(sender_id: int, message_queue: list):
     elif result[0] == "Weather":
         weather = await get_weather(result[2])
         module_result = weather
-    # elif result[0] == "Image"
-    #     img = generate_img(result[1])
+    elif result[0] == "Image":
+        img = generate_img(result[2])
+        if img:
+            await bot.send_photo(sender_id, IMG_PATH)
+            module_result = f"Description of image sent by {{{{char}}}}: {result[2]}"
+        else:
+            await bot.send_message(
+                sender_id,
+                "<i>Image generation failed.</i>",
+                "html"
+            )
+            await bot.send_message(
+                sender_id,
+                f"<i>Expected Image's Description: {result[2]}.</i>",
+                "html"
+            )
 
     if VERBOSE:
         print("\n##########")
@@ -212,6 +235,7 @@ async def process_message(sender_id: int, message_queue: list):
         print(f"{result[0]} PROMPT RESULT:\n{module_result}")
         print("##########\n")
 
+    # Remove parts of short-term memory and save it in the vector database
     if len(short_mem) > 10:
         docs = []
         for _ in range(5):
@@ -222,20 +246,22 @@ async def process_message(sender_id: int, message_queue: list):
         long_mem.add_documents(docs)
         long_mem.save(DB_PATH)
 
-    curr_ctx = f"{desc}\n\n{main_ctx}\n\n{curr_date}"
+    curr_ctx = f"{CHAR_DESC}\n\n{main_ctx}\n\n{curr_date}"
     curr_ctx += "\n{{char}} may use the following information below to come up with a reply:"
     curr_ctx += f"\n{module_result}"
     result = await infer_model(curr_ctx, MAIN_CMD, MAIN_TEMPLATE, short_mem)
-    # The AI likes to say nya for some reason.
-    # Replace 'nya' to 'meow' before translating to JP for TTS
     result = re.sub(r"\bnya\b", "meow", result, flags=re.IGNORECASE)
+
+    translation = translate(result) if TL_ENABLED else None
+    tts = synthesize_voice(translation, TTS_LANG) if TTS_ENABLED and translation else None
 
     # Splits generated result into a list of sentences
     result = sent_tokenize(result)
-
     for msg in result:
         await bot.send_message(sender_id, msg)
         await asyncio.sleep(1.5)
+    if tts:
+        await bot.send_voice(sender_id, VOICE_TTS)
     
     message_queue.pop(0)
 
