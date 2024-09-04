@@ -12,7 +12,7 @@ g_translator = Translator()
 
 def translate(txt: str) -> str:
     d_usage = d_translator.get_usage()
-    if not d_usage.any_limit_reached:
+    if d_usage.any_limit_reached:
         print("\n##########")
         print("DeepL API translation limit reached.")
         print("Using another translator...")
