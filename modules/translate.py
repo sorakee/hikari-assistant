@@ -10,9 +10,9 @@ d_translator = deepl.Translator(AUTH_KEY)
 g_translator = Translator()
 
 
-def translate(txt: str):
+def translate(txt: str) -> str:
     d_usage = d_translator.get_usage()
-    if d_usage.any_limit_reached:
+    if not d_usage.any_limit_reached:
         print("\n##########")
         print("DeepL API translation limit reached.")
         print("Using another translator...")
@@ -22,7 +22,7 @@ def translate(txt: str):
             src="en",
             dest="ja"
         )
-        return result
+        return str(result.text)
 
     result = d_translator.translate_text(
         txt, 
@@ -35,7 +35,7 @@ def translate(txt: str):
         print(
             f"Character usage: {d_usage.character.count} of {d_usage.character.limit}")
 
-    return result
+    return str(result)
 
 if __name__ == "__main__":
     text = "Hello! How are you today, old man?"
