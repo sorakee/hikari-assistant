@@ -6,11 +6,14 @@ from googletrans import Translator
 load_dotenv()
 
 AUTH_KEY = os.getenv("DEEPL_TOKEN")
+USER = os.getenv("USER")
+USER_PRONUNCIATION = os.getenv("USER_PRONUNCIATION")
 d_translator = deepl.Translator(AUTH_KEY)
 g_translator = Translator()
 
 
 def translate(txt: str) -> str:
+    txt = txt.replace(USER, USER_PRONUNCIATION)
     d_usage = d_translator.get_usage()
     if d_usage.any_limit_reached:
         print("\n##########")

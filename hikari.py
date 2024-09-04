@@ -253,7 +253,13 @@ async def process_message(sender_id: int, message_queue: list):
     result = re.sub(r"\bnya\b", "meow", result, flags=re.IGNORECASE)
 
     translation = translate(result) if TL_ENABLED else None
-    tts = synthesize_voice(translation, TTS_LANG) if TTS_ENABLED and translation else None
+    if VERBOSE and translation:
+        print("\n##########")
+        print("Translation succesful!")
+        print(f"Translation: {translation}")
+        print("Attempting to synthesize voice...")
+        print("##########\n")
+    tts = await synthesize_voice(translation, TTS_LANG) if TTS_ENABLED and translation else None
 
     # Splits generated result into a list of sentences
     result = sent_tokenize(result)

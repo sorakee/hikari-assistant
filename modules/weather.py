@@ -1,4 +1,5 @@
 import os
+import re
 import asyncio
 import python_weather
 from datetime import datetime
@@ -12,10 +13,12 @@ LOCATION = os.getenv("LOCATION")
 async def get_weather(date: str) -> str:
     async with python_weather.Client() as client:
         weather = await client.get(LOCATION)
-    
+
+    # Remove ordinal suffixes ('st', 'nd', 'rd', 'th')
+    date = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', date)
     if "today" in date.lower() or "now" in date.lower():
         date = datetime.now().strftime("%d %B %Y")
-    
+
     curr_temp = f"{weather.temperature}°C"
     curr_desc = weather.description
 

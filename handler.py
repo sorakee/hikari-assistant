@@ -20,10 +20,11 @@ with open("stickers.json") as file:
     STICKERS = json.load(file)
 
 model = WhisperModel("small.en", "cuda", compute_type="float16")
-VOICE_FILE = "voice.ogg"
-AUD_DIR = Path("audio_temp")
-if not os.path.exists(AUD_DIR):
-    os.makedirs(AUD_DIR)
+VOICE_PATH = os.getenv("VOICE_PATH")
+file_path = Path(VOICE_PATH)
+directory = file_path.parent
+if not os.path.exists(directory):
+    os.mkdir(directory)
 
 
 async def handle_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -125,8 +126,8 @@ async def handle_aud(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         return
 
     aud_file = await context.bot.get_file(update.message.voice.file_id)
-    await aud_file.download_to_drive(AUD_DIR / VOICE_FILE)
-    segments, info = model.transcribe(str(AUD_DIR / VOICE_FILE))
+    await aud_file.download_to_drive(VOICE_PATH)
+    segments, info = model.transcribe(str(VOICE_PATH))
     result = re.sub(
         r"\b(Hickory|Cory|Cody|Corey)\b", 
         "Hikari", 

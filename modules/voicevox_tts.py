@@ -54,6 +54,6 @@ async def synthesize_voice(text: str, language: str) -> bool:
 
 
 if __name__ == "__main__": 
-    # text = "集ケサ邸取クゅ中質わをろて南率がぴゃお参変リワ気8違ヲタユ神土むなイド報縦だで販監ったへ県訪更人ほ国禁法ていぽ障9進をきな。"
-    text = "おはようございます！！！！"
+    text = "集ケサ邸取クゅ中質わをろて南率がぴゃお参変リワ気8違ヲタユ神土むなイド報縦だで販監ったへ県訪更人ほ国禁法ていぽ障9進をきな。"
+    # text = "おはようございます！！！！"
     asyncio.run(synthesize_voice(text, "JP"))

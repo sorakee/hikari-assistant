@@ -1,4 +1,5 @@
 import os
+import re
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from gcsa.google_calendar import GoogleCalendar
@@ -14,6 +15,8 @@ gc = GoogleCalendar(EMAIL, credentials_path=filename)
 
 
 def get_event(date: str):
+    # Remove ordinal suffixes ('st', 'nd', 'rd', 'th')
+    date = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', date)
     if "today" in date.lower() or "now" in date.lower():
         date = datetime.now()
     else:

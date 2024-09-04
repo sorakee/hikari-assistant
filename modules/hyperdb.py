@@ -57,6 +57,9 @@ class HyperDB:
         embedding_function=None,
         similarity_metric="cosine",
     ):
+        print("\n##########")
+        print("DATABASE INITIALIZED")
+        print("##########\n")
         documents = documents or []
         self.documents = []
         self.vectors = None
@@ -151,6 +154,9 @@ class HyperDB:
         else:
             with open(storage_file, "wb") as f:
                 pickle.dump(data, f)
+        print("\n##########")
+        print("DOCUMENTS SAVED TO DATABASE")
+        print("##########\n")
 
     def load(self, storage_file):
         if storage_file.endswith(".gz"):
@@ -159,6 +165,9 @@ class HyperDB:
         else:
             with open(storage_file, "rb") as f:
                 data = pickle.load(f)
+        print("\n##########")
+        print("LOADED DOCUMENTS FROM DATABASE")
+        print("##########\n")
         self.vectors = data["vectors"].astype(np.float32)
         self.documents = data["documents"]
 
