@@ -185,8 +185,9 @@ async def process_message(sender_id: int, message_queue: list):
     curr_date = f"Today's date and time is {datetime.now().strftime("%d %B %Y, %I:%M %p")}"
     curr_ctx = f"{CHAR_DESC}\n\n{module_ctx}\n\n{curr_date}"
     curr_ctx += "\n{{char}} may use the following information below to come up with a MODULE selection:"
-    for i, m in reversed(short_mem):    
-        curr_ctx += f"\n{m}"
+    for i, m in reversed(list(enumerate(short_mem))): 
+        sender = USER if pop_mem["role"] == "user" else CHAR_NAME   
+        curr_ctx += f"\n{USER}: {m["content"]}"
         if i == 2:
             break
     
