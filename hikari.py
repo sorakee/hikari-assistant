@@ -187,7 +187,7 @@ async def process_message(sender_id: int, message_queue: list):
     curr_ctx += "\n{{char}} may use the following information below to come up with a MODULE selection:"
     for i, m in reversed(list(enumerate(short_mem))): 
         sender = USER if m["role"] == "user" else CHAR_NAME   
-        curr_ctx += f"\n{USER}: {m["content"]}"
+        curr_ctx += f"\n{sender}: {m["content"]}"
         if i == 2:
             break
     
@@ -241,7 +241,7 @@ async def process_message(sender_id: int, message_queue: list):
     elif result[0] == "Image":
         img = generate_img(result[2])
         if img:
-            await bot.send_photo(sender_id, IMG_PATH)
+            await bot.send_photo(sender_id, IMG_PATH, read_timeout=60, write_timeout=60, connect_timeout=60, pool_timeout=60)
             module_result = f"Description of image sent by {{{{char}}}}: {result[2]}"
         else:
             await bot.send_message(
