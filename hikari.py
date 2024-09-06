@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import emoji
 import aiohttp
 import asyncio
 from pathlib import Path
@@ -42,6 +43,7 @@ with open("character.json", encoding="utf-8") as file:
 
     CHAR_NAME = character["name"]
     CHAR_DESC = character["description"]
+    SYS_NAME = character["sys_name"]
 
     MAIN_CMD = character["main_cmd"]
     MODULE_CMD = character["module_cmd"]
@@ -65,11 +67,12 @@ valid_modules = ["Conversation", "Calendar", "Weather", "Image"]
 
 async def infer_model(
         context: str,
+        char: str,
         command: str,
         chat_template: str,
         memory: list,
         tp: float=1.0,
-        repeat_penalty: float=1.0
+        repeat_penalty: float=1.0,
     ) -> str:
     """
     Sends a prompt to the model through an HTTP POST request to a specified API endpoint.
@@ -102,14 +105,26 @@ async def infer_model(
         "Content-Type": "application/json"
     }
 
+    # body = {
+    #     "messages": memory,
+    #     "name1": USER,
+    #     "mode": "chat-instruct",
+    #     "character": CHAR_NAME,
+    #     "context": context,
+    #     "chat_instruct_command": command,
+    #     "instruction_template": TEMPLATE,
+    #     "chat_template_str": chat_template,
+    #     "temperature": tp,
+    #     "repetition_penalty": repeat_penalty
+    # }
+    
     body = {
         "messages": memory,
         "name1": USER,
         "mode": "chat-instruct",
-        "character": CHAR_NAME,
+        "character": char,
         "context": context,
         "chat_instruct_command": command,
-        "instruction_template": TEMPLATE,
         "chat_template_str": chat_template,
         "temperature": tp,
         "repetition_penalty": repeat_penalty
@@ -128,6 +143,10 @@ async def infer_model(
                     print("##########\n")
 
                 hikari_msg = hikari_msg["choices"][0]["message"]["content"]
+                # Remove any action text surrounded by asterisks (e.g. *gasp*)
+                hikari_msg = re.sub(r'\*.*?\*', '', hikari_msg).strip()
+                hikari_msg = re.sub(r"\bnya\b", "meow", hikari_msg, flags=re.IGNORECASE)
+                hikari_msg = emoji.replace_emoji(hikari_msg, replace="").strip()
                 memory.append({"role": "assistant", "content": hikari_msg})
             else:
                 hikari_msg = "ERROR: Please try again. Sorry!"
@@ -165,6 +184,11 @@ async def process_message(sender_id: int, message_queue: list):
 
     curr_date = f"Today's date and time is {datetime.now().strftime("%d %B %Y, %I:%M %p")}"
     curr_ctx = f"{CHAR_DESC}\n\n{module_ctx}\n\n{curr_date}"
+    curr_ctx += "\n{{char}} may use the following information below to come up with a reply if it is related to {{user}}'s message:"
+    for i, m in reversed(short_mem):    
+        curr_ctx += f"\n{m}"
+        if i == 2:
+            break
     
     short_mem.append({"role": "user", "content": user_msg})
     module_mem.append({"role": "user", "content": user_msg})
@@ -176,10 +200,11 @@ async def process_message(sender_id: int, message_queue: list):
     while True:
         result = await infer_model(
             curr_ctx, 
+            SYS_NAME,
             MODULE_CMD, 
             MODULE_TEMPLATE, 
-            module_mem,
-            0.7, 1.1)
+            module_mem
+        )
         result = f"MODULE = {result}"
 
         pattern = r"MODULE\s*=\s*(\w+)\.\s*(Topic|Date|Description)\s*=\s*([^.]+)"
@@ -203,7 +228,7 @@ async def process_message(sender_id: int, message_queue: list):
 
     module_result = ""
     if result[0] == "Conversation":
-        queries = long_mem.query(user_msg)
+        queries = long_mem.query(user_msg, return_similarities=False)
         for q in queries:
             module_result += f"{q}\n"
     elif result[0] == "Calendar":
@@ -247,19 +272,18 @@ async def process_message(sender_id: int, message_queue: list):
         long_mem.save(DB_PATH)
 
     curr_ctx = f"{CHAR_DESC}\n\n{main_ctx}\n\n{curr_date}"
-    curr_ctx += "\n{{char}} may use the following information below to come up with a reply:"
-    curr_ctx += f"\n{module_result}"
-    result = await infer_model(curr_ctx, MAIN_CMD, MAIN_TEMPLATE, short_mem)
-    result = re.sub(r"\bnya\b", "meow", result, flags=re.IGNORECASE)
+    curr_ctx += "\n{{char}} may use the following information below to come up with a reply if it is related to {{user}}'s message:"
+    curr_ctx += f"\n{module_result if module_result else "None"}"
+    result = await infer_model(curr_ctx, CHAR_NAME, MAIN_CMD, MAIN_TEMPLATE, short_mem)
 
-    translation = translate(result) if TL_ENABLED else None
+    translation = translate(result) if TL_ENABLED else False
     if VERBOSE and translation:
         print("\n##########")
         print("Translation succesful!")
         print(f"Translation: {translation}")
         print("Attempting to synthesize voice...")
         print("##########\n")
-    tts = await synthesize_voice(translation, TTS_LANG) if TTS_ENABLED and translation else None
+    tts = await synthesize_voice(translation, TTS_LANG) if TTS_ENABLED and translation else False
 
     # Splits generated result into a list of sentences
     result = sent_tokenize(result)
@@ -269,6 +293,8 @@ async def process_message(sender_id: int, message_queue: list):
     if tts:
         await bot.send_voice(sender_id, VOICE_TTS)
     
+    print("Message process success!")
+    print("Removing message from queue...")
     message_queue.pop(0)
 
 

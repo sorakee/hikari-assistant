@@ -14,7 +14,7 @@ file_path = Path(VOICE_TTS)
 directory = file_path.parent
 # VOICEVOX: Amahare Hau (Speaker at Index 3 in fetch_speakers result)
 # This is the speaker's style ID
-SPEAKER: int = 10 
+SPEAKER: int = 10
 VERBOSE = False
 
 if not os.path.exists(directory):

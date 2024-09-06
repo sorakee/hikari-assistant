@@ -6,7 +6,8 @@ from handler import (
     whitelist_users,
     handle_cmd,
     handle_msg,
-    handle_aud
+    handle_aud,
+    handle_error
 )
 from telegram import Update
 from telegram.ext import (
@@ -27,7 +28,7 @@ logging.basicConfig(
 
 
 def run_bot() -> None:
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app = ApplicationBuilder().token(BOT_TOKEN).read_timeout(60.0).write_timeout(60.0).build()
 
     filter_users = TypeHandler(Update, whitelist_users)
     cmd_handler = MessageHandler(filters.COMMAND, handle_cmd)
@@ -38,6 +39,7 @@ def run_bot() -> None:
     app.add_handler(cmd_handler)
     app.add_handler(msg_handler)
     app.add_handler(aud_handler)
+    app.add_error_handler(handle_error)
     
     user_states = {}
     app.context_types.context.user_states = user_states

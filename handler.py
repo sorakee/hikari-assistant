@@ -3,6 +3,7 @@ import re
 import json
 import emoji
 import asyncio
+import logging
 from faster_whisper import WhisperModel
 from dotenv import load_dotenv
 from hikari import process_message
@@ -15,6 +16,11 @@ load_dotenv()
 
 CREATOR_ID = int(os.getenv("CREATOR_ID"))
 VERBOSE = True
+
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
 with open("stickers.json") as file:
     STICKERS = json.load(file)
@@ -181,3 +187,19 @@ async def whitelist_users(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await context.bot.send_sticker(senderID, STICKERS["sorry"])
 
         raise ApplicationHandlerStop
+
+async def handle_error(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    sender = update.message.from_user
+    user_states = context.user_states
+
+    if VERBOSE:
+        print("\n##########")
+        print("TIMEOUT ERROR")
+        print("##########\n")
+
+    message_queue = user_states[sender.id]["message_queue"]
+    if len(message_queue) > 0:
+        message_queue.pop(0)
+    await context.bot.send_message(
+        chat_id=sender.id, text="<i>Timeout ERROR. Please try again.</i>", parse_mode="html"
+    )
