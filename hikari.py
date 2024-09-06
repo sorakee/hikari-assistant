@@ -184,7 +184,7 @@ async def process_message(sender_id: int, message_queue: list):
 
     curr_date = f"Today's date and time is {datetime.now().strftime("%d %B %Y, %I:%M %p")}"
     curr_ctx = f"{CHAR_DESC}\n\n{module_ctx}\n\n{curr_date}"
-    curr_ctx += "\n{{char}} may use the following information below to come up with a reply if it is related to {{user}}'s message:"
+    curr_ctx += "\n{{char}} may use the following information below to come up with a MODULE selection:"
     for i, m in reversed(short_mem):    
         curr_ctx += f"\n{m}"
         if i == 2:
