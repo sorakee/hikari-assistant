@@ -105,19 +105,6 @@ async def infer_model(
         "Content-Type": "application/json"
     }
 
-    # body = {
-    #     "messages": memory,
-    #     "name1": USER,
-    #     "mode": "chat-instruct",
-    #     "character": CHAR_NAME,
-    #     "context": context,
-    #     "chat_instruct_command": command,
-    #     "instruction_template": TEMPLATE,
-    #     "chat_template_str": chat_template,
-    #     "temperature": tp,
-    #     "repetition_penalty": repeat_penalty
-    # }
-    
     body = {
         "messages": memory,
         "name1": USER,
@@ -125,10 +112,23 @@ async def infer_model(
         "character": char,
         "context": context,
         "chat_instruct_command": command,
+        "instruction_template": TEMPLATE,
         "chat_template_str": chat_template,
         "temperature": tp,
         "repetition_penalty": repeat_penalty
     }
+    
+    # body = {
+    #     "messages": memory,
+    #     "name1": USER,
+    #     "mode": "chat-instruct",
+    #     "character": char,
+    #     "context": context,
+    #     "chat_instruct_command": command,
+    #     "chat_template_str": chat_template,
+    #     "temperature": tp,
+    #     "repetition_penalty": repeat_penalty
+    # }
 
     hikari_msg = ""
     
@@ -190,6 +190,7 @@ async def process_message(sender_id: int, message_queue: list):
             sender = USER if short_mem[i]["role"] == "user" else CHAR_NAME   
             curr_ctx += f"\n{sender}: {short_mem[i]["content"]}"
         else:
+            curr_ctx += "\nNone"
             break
     
     short_mem.append({"role": "user", "content": user_msg})
@@ -205,7 +206,8 @@ async def process_message(sender_id: int, message_queue: list):
             SYS_NAME,
             MODULE_CMD, 
             MODULE_TEMPLATE, 
-            module_mem
+            module_mem,
+            1.0, 1.1
         )
         result = f"MODULE = {result}"
 
@@ -242,7 +244,7 @@ async def process_message(sender_id: int, message_queue: list):
     elif result[0] == "Image":
         img = generate_img(result[2])
         if img:
-            await bot.send_photo(sender_id, IMG_PATH, read_timeout=60, write_timeout=60, connect_timeout=60, pool_timeout=60)
+            await bot.send_photo(sender_id, IMG_PATH)
             module_result = f"Description of image sent by {{{{char}}}}: {result[2]}"
         else:
             await bot.send_message(
@@ -293,6 +295,10 @@ async def process_message(sender_id: int, message_queue: list):
         await bot.send_message(sender_id, msg)
         await asyncio.sleep(1.5)
     if tts:
+        if VERBOSE:
+            print("\n##########")
+            print("Sending voice...")
+            print("##########\n")
         await bot.send_voice(sender_id, VOICE_TTS)
     
     print("Message process success!")

@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+USER = os.getenv("USER")
 HOST = os.getenv("IMAGE_HOST")
 PORT = os.getenv("IMAGE_PORT")
 SD_MODEL = os.getenv("SD_MODEL")
@@ -30,6 +31,7 @@ def generate_img(
         hr_scale: float = 1.5,
         denoising_strength: float = 0.7,
     ) -> bool:
+    prompt = prompt.replace(USER, "1boy")
     prompt = f"{DEFAULT_PROMPT}, {prompt}"
     negative_prompt = NEGATIVE_PROMPT
     options = {

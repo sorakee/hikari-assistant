@@ -28,7 +28,7 @@ logging.basicConfig(
 
 
 def run_bot() -> None:
-    app = ApplicationBuilder().token(BOT_TOKEN).read_timeout(60.0).write_timeout(60.0).build()
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     filter_users = TypeHandler(Update, whitelist_users)
     cmd_handler = MessageHandler(filters.COMMAND, handle_cmd)

@@ -15,7 +15,7 @@ g_translator = Translator()
 def translate(txt: str) -> str:
     txt = txt.replace(USER, USER_PRONUNCIATION)
     d_usage = d_translator.get_usage()
-    if d_usage.any_limit_reached:
+    if not d_usage.any_limit_reached:
         print("\n##########")
         print("DeepL API translation limit reached.")
         print("Using another translator...")
