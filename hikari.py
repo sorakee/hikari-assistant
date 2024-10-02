@@ -229,7 +229,7 @@ async def process_message(sender_id: int, message_queue: list):
 
         module_mem.pop()
 
-    module_result = get_module_result(result, user_msg, sender_id)
+    module_result = await get_module_result(result, user_msg, sender_id)
 
     if VERBOSE:
         print("\n##########")
