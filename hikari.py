@@ -229,42 +229,7 @@ async def process_message(sender_id: int, message_queue: list):
 
         module_mem.pop()
 
-    module_result = ""
-    if result[1] == "Conversation":
-        queries = long_mem.query(user_msg, return_similarities=False)
-        for q in queries:
-            module_result += f"{q}\n"
-    elif result[1] == "Calendar":
-        events = get_event(result[2])
-        module_result = events
-    elif result[1] == "Weather":
-        weather = await get_weather(result[2])
-        module_result = weather
-    elif result[1] == "Image":
-        img = generate_img(result[2])
-        photo_sent = False
-        sent_attempt = 0
-        while not photo_sent:
-            try:
-                if sent_attempt == 3:
-                    await bot.send_message(
-                        sender_id,
-                        "<i>Image generation failed.</i>",
-                        "html"
-                    )
-                    await bot.send_message(
-                        sender_id,
-                        f"<i>Expected Image's Description: {result[2]}.</i>",
-                        "html"
-                    )
-                    break
-                await bot.send_photo(sender_id, IMG_PATH)
-                module_result = f"Description of image sent by {{{{char}}}}: {result[2]}"
-                photo_sent = True
-            except error.TimedOut:
-                sent_attempt += 1
-                continue
-            
+    module_result = get_module_result(result, user_msg, sender_id)
 
     if VERBOSE:
         print("\n##########")
@@ -327,6 +292,46 @@ async def process_message(sender_id: int, message_queue: list):
     print("Message process success!")
     print("Removing message from queue...")
     message_queue.pop(0)
+
+
+async def get_module_result(prompt, msg, sender_id): 
+    module_result = ""
+    if prompt[1] == "Conversation":
+        queries = long_mem.query(msg, return_similarities=False)
+        for q in queries:
+            module_result += f"{q}\n"
+    elif prompt[1] == "Calendar":
+        events = get_event(prompt[2])
+        module_result = events
+    elif prompt[1] == "Weather":
+        weather = await get_weather(prompt[2])
+        module_result = weather
+    elif prompt[1] == "Image":
+        img = generate_img(prompt[2])
+        photo_sent = False
+        sent_attempt = 0
+        while not photo_sent:
+            try:
+                if sent_attempt == 3:
+                    await bot.send_message(
+                        sender_id,
+                        "<i>Image generation failed.</i>",
+                        "html"
+                    )
+                    await bot.send_message(
+                        sender_id,
+                        f"<i>Expected Image's Description: {prompt[2]}.</i>",
+                        "html"
+                    )
+                    break
+                await bot.send_photo(sender_id, IMG_PATH)
+                module_result = f"Description of image sent by {{{{char}}}}: {prompt[2]}"
+                photo_sent = True
+            except error.TimedOut:
+                sent_attempt += 1
+                continue
+    
+    return module_result
 
 
 async def check_inactivity():
