@@ -7,3 +7,4 @@ img_temp
 character.json
 credentials.json
 token.pickle
+config.env
