@@ -17,11 +17,16 @@ gc = GoogleCalendar(EMAIL, credentials_path=filename)
 def get_event(date: str):
     # Remove ordinal suffixes ('st', 'nd', 'rd', 'th')
     date = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', date)
+    # Remove time included in the input if present
     date = date.split(",")[0]
     if "today" in date.lower() or "now" in date.lower():
         date = datetime.now()
     else:
-        date = datetime.strptime(date, "%d %B %Y")
+        try:
+            date = datetime.strptime(date, "%d %B %Y")
+        except ValueError:
+            # In case the AI decides to abbreviate the month's name
+            date = datetime.strptime(date, "%d %b %Y")
 
     events = gc.get_events(date, date + timedelta(1), order_by="startTime", single_events=True)
 

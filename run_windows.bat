@@ -74,8 +74,7 @@ echo All processes have been started.
 echo Press any key to close all spawned Command Prompt windows...
 pause
 
-@rem Close all Command Prompt windows spawned by this script
-taskkill /IM cmd.exe /FI "WINDOWTITLE eq Administrator: Command Prompt"
-taskkill /IM cmd.exe /FI "WINDOWTITLE eq Command Prompt"
+@rem Close all Command Prompt windows
+taskkill /IM WindowsTerminal.exe
 
 exit

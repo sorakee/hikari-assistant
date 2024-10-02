@@ -15,6 +15,7 @@ from modules.weather import get_weather
 from modules.translate import translate
 from modules.voicevox_tts import synthesize_voice
 from modules.imagegen import generate_img
+from telegram import error
 
 load_dotenv()
 
@@ -62,8 +63,6 @@ long_mem = HyperDB()
 if Path(DB_PATH).is_file():
     long_mem.load(DB_PATH)
 
-valid_modules = ["Conversation", "Calendar", "Weather", "Image"]
-
 
 async def infer_model(
         context: str,
@@ -105,19 +104,6 @@ async def infer_model(
         "Content-Type": "application/json"
     }
 
-    body = {
-        "messages": memory,
-        "name1": USER,
-        "mode": "chat-instruct",
-        "character": char,
-        "context": context,
-        "chat_instruct_command": command,
-        "instruction_template": TEMPLATE,
-        "chat_template_str": chat_template,
-        "temperature": tp,
-        "repetition_penalty": repeat_penalty
-    }
-    
     # body = {
     #     "messages": memory,
     #     "name1": USER,
@@ -125,10 +111,23 @@ async def infer_model(
     #     "character": char,
     #     "context": context,
     #     "chat_instruct_command": command,
+    #     "instruction_template": TEMPLATE,
     #     "chat_template_str": chat_template,
     #     "temperature": tp,
     #     "repetition_penalty": repeat_penalty
     # }
+    
+    body = {
+        "messages": memory,
+        "name1": USER,
+        "mode": "chat-instruct",
+        "character": char,
+        "context": context,
+        "chat_instruct_command": command,
+        "chat_template_str": chat_template,
+        "temperature": tp,
+        "repetition_penalty": repeat_penalty
+    }
 
     hikari_msg = ""
     
@@ -144,7 +143,7 @@ async def infer_model(
 
                 hikari_msg = hikari_msg["choices"][0]["message"]["content"]
                 # Remove any action text surrounded by asterisks (e.g. *gasp*)
-                hikari_msg = re.sub(r'\*.*?\*', '', hikari_msg).strip()
+                # hikari_msg = re.sub(r'\*.*?\*', '', hikari_msg).strip()
                 hikari_msg = re.sub(r"\bnya\b", "meow", hikari_msg, flags=re.IGNORECASE)
                 hikari_msg = emoji.replace_emoji(hikari_msg, replace="").strip()
                 memory.append({"role": "assistant", "content": hikari_msg})
@@ -211,57 +210,66 @@ async def process_message(sender_id: int, message_queue: list):
         )
         result = f"MODULE = {result}"
 
-        pattern = r"MODULE\s*=\s*(\w+)\.\s*(Topic|Date|Description)\s*=\s*([^.]+)"
+        pattern = r"MODULE\s*=\s*(Calendar|Image|Weather|Conversation)\.\s*(Date\s*=\s*([^\n.]+)|Description\s*=\s*([^\n.]+)|Tags\s*=\s*([^\n.]+))?"
         match = re.search(pattern, result)
 
-        try:
-            module_name = match.group(1)
-        except AttributeError:
-            # If not found, this means that the AI failed to generate a response
-            # that matches the specified pattern
-            pass
-
-        if match and module_name in valid_modules:
-            # result[0] - Module Name
-            # result[1] - Topic/Date/Description
-            # result[2] - Text related to result[1]
-            result = [match.group(1), match.group(2), match.group(3).strip()]
+        
+        if match:
+            # result[0] - Module Prompt
+            # result[1] - Module Name
+            # result[2] - Date/Description/Tags
+            result = [match.group(0), match.group(1)]
+            if match.group(3):  # If Date matched
+                result.append(match.group(3).strip())
+            elif match.group(4):  # If Description matched
+                result.append(match.group(4).strip())
+            elif match.group(5):  # If Tags matched
+                result.append(match.group(5).strip())
             break
 
         module_mem.pop()
 
     module_result = ""
-    if result[0] == "Conversation":
+    if result[1] == "Conversation":
         queries = long_mem.query(user_msg, return_similarities=False)
         for q in queries:
             module_result += f"{q}\n"
-    elif result[0] == "Calendar":
+    elif result[1] == "Calendar":
         events = get_event(result[2])
         module_result = events
-    elif result[0] == "Weather":
+    elif result[1] == "Weather":
         weather = await get_weather(result[2])
         module_result = weather
-    elif result[0] == "Image":
+    elif result[1] == "Image":
         img = generate_img(result[2])
-        if img:
-            await bot.send_photo(sender_id, IMG_PATH)
-            module_result = f"Description of image sent by {{{{char}}}}: {result[2]}"
-        else:
-            await bot.send_message(
-                sender_id,
-                "<i>Image generation failed.</i>",
-                "html"
-            )
-            await bot.send_message(
-                sender_id,
-                f"<i>Expected Image's Description: {result[2]}.</i>",
-                "html"
-            )
+        photo_sent = False
+        sent_attempt = 0
+        while not photo_sent:
+            try:
+                if sent_attempt == 3:
+                    await bot.send_message(
+                        sender_id,
+                        "<i>Image generation failed.</i>",
+                        "html"
+                    )
+                    await bot.send_message(
+                        sender_id,
+                        f"<i>Expected Image's Description: {result[2]}.</i>",
+                        "html"
+                    )
+                    break
+                await bot.send_photo(sender_id, IMG_PATH)
+                module_result = f"Description of image sent by {{{{char}}}}: {result[2]}"
+                photo_sent = True
+            except error.TimedOut:
+                sent_attempt += 1
+                continue
+            
 
     if VERBOSE:
         print("\n##########")
-        print(f"MODULE PROMPT RESULT:\nMODULE = {result[0]}. {result[1]} = {result[2]}.")
-        print(f"{result[0]} PROMPT RESULT:\n{module_result}")
+        print(f"MODULE PROMPT:\n{result[0]} ")
+        print(f"{result[1]} PROMPT RESULT:\n{module_result}")
         print("##########\n")
 
     # Remove parts of short-term memory and save it in the vector database
@@ -299,7 +307,22 @@ async def process_message(sender_id: int, message_queue: list):
             print("\n##########")
             print("Sending voice...")
             print("##########\n")
-        await bot.send_voice(sender_id, VOICE_TTS)
+        voice_sent = False
+        sent_attempt = 0
+        while not voice_sent:
+            try:
+                if sent_attempt == 3:
+                    await bot.send_message(
+                        sender_id,
+                        "<i>TTS generation failed. Skipping...</i>",
+                        "html"
+                    )
+                    break
+                await bot.send_voice(sender_id, VOICE_TTS)
+                voice_sent = True
+            except error.TimedOut:
+                sent_attempt += 1
+                continue
     
     print("Message process success!")
     print("Removing message from queue...")

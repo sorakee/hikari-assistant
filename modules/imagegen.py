@@ -21,11 +21,15 @@ api = WebUIApi(host=HOST, port=PORT)
 
 def generate_img(
         prompt: str,
-        sampler: str = "DPM++ 2M",
-        scheduler: str = "Karras",
+        sampler: str = "Euler a",
+        scheduler: str = "Automatic",
+        # sampler: str = "DPM++ 2M",
+        # scheduler: str = "Karras",
         steps: int = 25,
+        # width: int = 768,
+        # height: int = 768,
         width: int = 768,
-        height: int = 768,
+        height: int = 1344,
         cfg_scale: float = 6.5,
         enable_hr: bool = False,
         hr_scale: float = 1.5,
