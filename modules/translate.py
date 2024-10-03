@@ -12,13 +12,13 @@ d_translator = deepl.Translator(AUTH_KEY)
 g_translator = Translator()
 
 
-def translate(txt: str) -> str:
+def translate(txt: str, translator: str="google") -> str:
     txt = txt.replace(USER, USER_PRONUNCIATION)
     d_usage = d_translator.get_usage()
-    if not d_usage.any_limit_reached:
+    if d_usage.any_limit_reached or translator == "google":
         print("\n##########")
-        print("DeepL API translation limit reached.")
-        print("Using another translator...")
+        print("DeepL API translation limit reached or a different translator is used.")
+        print("Using another translator... (GoogleTL)")
         print("##########\n")
         result = g_translator.translate(
             txt,
