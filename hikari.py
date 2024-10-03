@@ -143,7 +143,7 @@ async def infer_model(
 
                 hikari_msg = hikari_msg["choices"][0]["message"]["content"]
                 # Remove any action text surrounded by asterisks (e.g. *gasp*)
-                # hikari_msg = re.sub(r'\*.*?\*', '', hikari_msg).strip()
+                hikari_msg = re.sub(r'\*.*?\*', '', hikari_msg).strip()
                 hikari_msg = re.sub(r"\bnya\b", "meow", hikari_msg, flags=re.IGNORECASE)
                 hikari_msg = emoji.replace_emoji(hikari_msg, replace="").strip()
                 memory.append({"role": "assistant", "content": hikari_msg})
@@ -212,7 +212,6 @@ async def process_message(sender_id: int, message_queue: list):
 
         pattern = r"MODULE\s*=\s*(Calendar|Image|Weather|Conversation)\.\s*(Date\s*=\s*([^\n.]+)|Description\s*=\s*([^\n.]+)|Tags\s*=\s*([^\n.]+))?"
         match = re.search(pattern, result)
-
         
         if match:
             # result[0] - Module Prompt
@@ -272,22 +271,13 @@ async def process_message(sender_id: int, message_queue: list):
             print("\n##########")
             print("Sending voice...")
             print("##########\n")
-        voice_sent = False
-        sent_attempt = 0
-        while not voice_sent:
-            try:
-                if sent_attempt == 3:
-                    await bot.send_message(
-                        sender_id,
-                        "<i>TTS generation failed. Skipping...</i>",
-                        "html"
-                    )
-                    break
-                await bot.send_voice(sender_id, VOICE_TTS)
-                voice_sent = True
-            except error.TimedOut:
-                sent_attempt += 1
-                continue
+        try:
+            await bot.send_voice(sender_id, VOICE_TTS)
+        except error.TimedOut:
+            # Sometimes the TTS is successfully sent but still timeouts regardless
+            print("Voice send timeout.")
+            print("Voice may or may not have been sent.")
+            pass
     
     print("Message process success!")
     print("Removing message from queue...")
@@ -308,28 +298,26 @@ async def get_module_result(prompt, msg, sender_id):
         module_result = weather
     elif prompt[1] == "Image":
         img = generate_img(prompt[2])
-        photo_sent = False
-        sent_attempt = 0
-        while not photo_sent:
-            try:
-                if sent_attempt == 3:
-                    await bot.send_message(
+        try:
+            if img:
+                await bot.send_photo(sender_id, IMG_PATH)
+                module_result = f"Description of image sent by {{{{char}}}}: {prompt[2]}"
+            else:
+                await bot.send_message(
                         sender_id,
                         "<i>Image generation failed.</i>",
                         "html"
                     )
-                    await bot.send_message(
-                        sender_id,
-                        f"<i>Expected Image's Description: {prompt[2]}.</i>",
-                        "html"
-                    )
-                    break
-                await bot.send_photo(sender_id, IMG_PATH)
-                module_result = f"Description of image sent by {{{{char}}}}: {prompt[2]}"
-                photo_sent = True
-            except error.TimedOut:
-                sent_attempt += 1
-                continue
+                await bot.send_message(
+                    sender_id,
+                    f"<i>Expected Image's Description: {prompt[2]}.</i>",
+                    "html"
+                )
+        except error.TimedOut:
+            # Sometimes the image is successfully sent but still timeouts regardless
+            print("Image send timeout.")
+            print("Image may or may not have been sent.")
+            pass
     
     return module_result
 
